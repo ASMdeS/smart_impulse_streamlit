@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 from pathlib import Path
-from Updating_Portfolio import second_portfolio, second_returns
+from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
 # Set the title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
@@ -18,7 +18,7 @@ st.set_page_config(
 def get_stock_data():
     """Prepare stock data from second_returns DataFrame."""
     # Pivot the DataFrame to have 'Date' as the index and 'Ticker' as columns
-    stock_df = second_returns.T.reset_index()
+    stock_df = third_returns.T.reset_index()
     stock_df = stock_df.rename(columns={'index': 'Date'})
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
     return stock_df
@@ -93,7 +93,7 @@ st.line_chart(
 
 # Display stock portfolio
 st.header(f'Stock Portfolio', divider='gray')
-st.dataframe(data=second_portfolio)
+st.dataframe(data=third_portfolio)
 
 ''
 ''
@@ -123,3 +123,21 @@ if selected_stocks:
                 delta=growth,
                 delta_color=delta_color
             )
+
+
+# Create two columns
+col1, col2 = st.columns(2)
+
+# Display top performers in the first column
+with col1:
+    st.subheader("Top 10 Performers")
+    top_performers_display = third_performers[['Combined ROI']].copy()
+    top_performers_display.index.name = 'Ticker'
+    st.dataframe(top_performers_display)
+
+# Display top losers in the second column
+with col2:
+    st.subheader("Bottom 10 Performers")
+    top_losers_display = third_losers[['Combined ROI']].copy()
+    top_losers_display.index.name = 'Ticker'
+    st.dataframe(top_losers_display)

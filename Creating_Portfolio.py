@@ -36,8 +36,15 @@ def create_portfolio(initial_dataframe):
     portfolio['Third Entry'] = False
     portfolio['Third Entry Price'] = None
     portfolio['Quantity'] = portfolio['Value'] / portfolio['First Entry Price']
+    portfolio['Investment'] = portfolio['Value']
+    portfolio['Unrealized ROI'] = portfolio['Value'] / portfolio['Investment']
+    portfolio['Materialized ROI'] = None
+
+
+    # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
+    latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio.index.tolist()])
     # Creating the Stock Returns Dataframe
-    data = yf.download(portfolio.index.tolist(), start="2022-01-01", end="2023-01-01")
+    data = yf.download(portfolio.index.tolist(), start=latest_ipo)
     # Extract the 'Close' prices
     close_prices = data['Close']
     # Transpose the DataFrame so that tickers are the index and dates are columns
@@ -56,6 +63,13 @@ def create_returns(initial_dataframe):
     df = close_prices.T
 
     return df
+
+def get_ipo_date(ticker_symbol):
+    stock_data = yf.Ticker(ticker_symbol)
+    history = stock_data.history(period="max").tz_localize(None)
+    first_trading_date = history.index[0].date()
+
+    return first_trading_date
 
 
 # Creating the dataframes
