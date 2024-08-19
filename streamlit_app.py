@@ -7,58 +7,24 @@ from Updating_Portfolio import second_portfolio, second_returns
 # Set the title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
     page_title='Portfolio Tracking for Smart Impulse',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_icon=':earth_americas:',  # This is an emoji shortcode. Could be a URL too.
 )
+
 
 # -----------------------------------------------------------------------------
 # Declare some useful functions.
 
 @st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+def get_stock_data():
+    """Prepare stock data from second_returns DataFrame."""
+    # Pivot the DataFrame to have 'Date' as the index and 'Ticker' as columns
+    stock_df = second_returns.T.reset_index()
+    stock_df = stock_df.rename(columns={'index': 'Date'})
+    stock_df['Date'] = pd.to_datetime(stock_df['Date'])
+    return stock_df
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
+stock_df = get_stock_data()
 
 # -----------------------------------------------------------------------------
 # Draw the actual page
@@ -79,23 +45,26 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 ''
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
+min_date = stock_df['Date'].min().date()  # Convert to datetime.date
+max_date = stock_df['Date'].max().date()  # Convert to datetime.date
 
-from_year, to_year = st.slider(
-    'Which stocks are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
+# Slider for selecting date range
+from_date, to_date = st.slider(
+    'Select the date range:',
+    min_value=min_date,
+    max_value=max_date,
+    value=[min_date, max_date],
+    format="YYYY-MM-DD"
+)
 
-countries = gdp_df['Country Code'].unique()
+tickers = stock_df.columns[1:]  # Exclude 'Date' column
 
-if not len(countries):
-    st.warning("Select at least one stock")
+if not len(tickers):
+    st.warning("No stocks available to select")
 
 selected_stocks = st.multiselect(
     'Which stocks would you like to view?',
-    countries,
+    tickers,
     [])
 
 ''
@@ -103,55 +72,54 @@ selected_stocks = st.multiselect(
 ''
 
 # Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_stocks))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
+filtered_stock_df = stock_df[
+    (stock_df['Date'] >= pd.to_datetime(from_date))
+    & (stock_df['Date'] <= pd.to_datetime(to_date))
+    ]
 
-st.header('Stock Price over time', divider='gray')
+if selected_stocks:
+    filtered_stock_df = filtered_stock_df[['Date'] + selected_stocks]
+
+st.header('Stock Prices over Time', divider='gray')
 
 ''
 
 st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
+    filtered_stock_df.set_index('Date'),
 )
 
 ''
 ''
 
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
+# Display stock portfolio
+st.header(f'Stock Portfolio', divider='gray')
 st.dataframe(data=second_portfolio)
 
 ''
+''
+
+st.header(f'Selected Stocks Returns', divider='gray')
 
 cols = st.columns(4)
 
-for i, country in enumerate(selected_stocks):
-    col = cols[i % len(cols)]
+if selected_stocks:
+    for i, ticker in enumerate(selected_stocks):
+        col = cols[i % len(cols)]
 
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
+        with col:
+            first_price = filtered_stock_df.iloc[0][ticker]
+            last_price = filtered_stock_df.iloc[-1][ticker]
 
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+            if math.isnan(first_price):
+                growth = 'n/a'
+                delta_color = 'off'
+            else:
+                growth = f'{last_price / first_price:,.2f}x'
+                delta_color = 'normal'
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+            st.metric(
+                label=f'{ticker} Price',
+                value=f'{last_price:,.2f}',
+                delta=growth,
+                delta_color=delta_color
+            )
