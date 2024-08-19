@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import math
 from pathlib import Path
+from Updating_Portfolio import second_portfolio, second_returns
 
 # Set the title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
-    page_title='GDP dashboard',
+    page_title='Portfolio Tracking for Smart Impulse',
     page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
 )
 
@@ -64,11 +65,14 @@ gdp_df = get_gdp_data()
 
 # Set the title that appears at the top of the page.
 '''
-# :earth_americas: GDP dashboard
+# :earth_americas: Portfolio Tracking for Smart Impulse
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
+Our project focuses on creating a dynamic, automated Virtual Portfolio (VP) tracking system for Smart Impulse,
+aimed at streamlining investment management. The system downloads stock lists daily, automatically identifies
+new entries and exits, and manages investments based on predefined conditions. With an initial investment of
+$100,000, the portfolio's performance is continuously monitored, and entries are made strategically to maximize
+returns. The dashboard provides comprehensive insights, including ROI calculations, top performers and losers,
+and portfolio distribution, with real-time updates delivered through Telegram.
 '''
 
 # Add some spacing
@@ -79,7 +83,7 @@ min_value = gdp_df['Year'].min()
 max_value = gdp_df['Year'].max()
 
 from_year, to_year = st.slider(
-    'Which years are you interested in?',
+    'Which stocks are you interested in?',
     min_value=min_value,
     max_value=max_value,
     value=[min_value, max_value])
@@ -87,12 +91,12 @@ from_year, to_year = st.slider(
 countries = gdp_df['Country Code'].unique()
 
 if not len(countries):
-    st.warning("Select at least one country")
+    st.warning("Select at least one stock")
 
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
+selected_stocks = st.multiselect(
+    'Which stocks would you like to view?',
     countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
+    [])
 
 ''
 ''
@@ -100,12 +104,12 @@ selected_countries = st.multiselect(
 
 # Filter the data
 filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
+    (gdp_df['Country Code'].isin(selected_stocks))
     & (gdp_df['Year'] <= to_year)
     & (from_year <= gdp_df['Year'])
 ]
 
-st.header('GDP over time', divider='gray')
+st.header('Stock Price over time', divider='gray')
 
 ''
 
@@ -125,11 +129,13 @@ last_year = gdp_df[gdp_df['Year'] == to_year]
 
 st.header(f'GDP in {to_year}', divider='gray')
 
+st.dataframe(data=second_portfolio)
+
 ''
 
 cols = st.columns(4)
 
-for i, country in enumerate(selected_countries):
+for i, country in enumerate(selected_stocks):
     col = cols[i % len(cols)]
 
     with col:
