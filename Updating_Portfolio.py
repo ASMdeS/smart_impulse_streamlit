@@ -1,5 +1,5 @@
 # Importing the Dataframes
-from Creating_Portfolio import get_ipo_date, first_day, second_day, third_day, fourth_day, smart_portfolio, smart_returns
+from Creating_Portfolio import get_ipo_date, first_day, second_day, third_day, smart_portfolio, smart_returns
 
 import pandas as pd
 import yfinance as yf
@@ -26,6 +26,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     if not new_stocks.empty:
         new_rows = pd.DataFrame(index=new_stocks)
         portfolio_dataframe['Sector'] = final_dataframe['Sector']
+        portfolio_dataframe['Market Category'] = final_dataframe['Market Cap ($M USD)']
         new_rows['Allocation'] = 0.02
         new_rows['Value'] = portfolio_dataframe['Allocation'] * 100000
         new_rows['Yesterday Price'] = None
@@ -71,6 +72,12 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         portfolio_dataframe['Overdraft'] = portfolio_dataframe['Value'] * (1 - scaling_factor)
         portfolio_dataframe['Value'] = portfolio_dataframe['Value'] * scaling_factor
 
+    top_performers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=False).head(10)
+    top_losers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=True).head(10)
+
+    return portfolio_dataframe, top_performers, top_losers
+
+def create_returns(portfolio_dataframe):
     # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio_dataframe.index.tolist()])
     # Creating the Stock Returns Dataframe
@@ -79,12 +86,14 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     close_prices = data['Close']
     # Transpose the DataFrame so that tickers are the index and dates are columns
     returns = close_prices.T
-    top_performers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=False).head(10)
-    top_losers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=True).head(10)
 
-    return portfolio_dataframe, returns, top_performers, top_losers
+    return returns
 
 
-second_portfolio, second_returns, second_performers, second_losers = update_portfolio(smart_portfolio, second_day)
+second_portfolio, second_performers, second_losers = update_portfolio(smart_portfolio, second_day)
 
-third_portfolio, third_returns, third_performers, third_losers = update_portfolio(second_portfolio, third_day)
+third_portfolio, third_performers, third_losers = update_portfolio(second_portfolio, third_day)
+
+third_returns = create_returns(third_portfolio)
+
+grouped_by_cap = third_portfolio.groupby('Market Cap').sum()

@@ -12,8 +12,12 @@ def csv_to_dataframe(file_name):
     dataframe = dataframe.iloc[:-1]
     # Index the dataframe to the Ticker
     dataframe.set_index('Ticker', inplace=True)
-    # Removing the "$" from the 'Price' column
+    # Removing the "$" from the 'Price' and 'Market Cap' columns
     dataframe['Price'] = dataframe['Price'].apply(lambda x: float(x[1:]) if isinstance(x, str) else x)
+    dataframe['Market Cap ($M USD)'] = dataframe['Market Cap ($M USD)'].apply(
+        lambda x: float(x[1:].replace(',', '')) if isinstance(x, str) else x)
+    dataframe['Market Cap Category'] = dataframe['Market Cap ($M USD)'].apply(
+        lambda x: "Small" if x < 2000 else "Medium" if x <= 10000 else "Large")
     # Returning the Dataframe
     return dataframe
 
@@ -21,6 +25,7 @@ def csv_to_dataframe(file_name):
 def create_portfolio(initial_dataframe):
     portfolio = initial_dataframe.index.to_frame(index=True)
     portfolio['Sector'] = initial_dataframe['Sector']
+    portfolio['Market Cap'] = initial_dataframe['Market Cap Category']
     portfolio['Allocation'] = 1 / len(initial_dataframe)
     portfolio['Value'] = portfolio['Allocation'] * 100000
     portfolio['Overdraft'] = 0
@@ -76,8 +81,8 @@ def get_ipo_date(ticker_symbol):
 first_day = csv_to_dataframe('data/Daily Stocks - first_day.csv')
 second_day = csv_to_dataframe('data/Daily Stocks - second_day.csv')
 third_day = csv_to_dataframe('data/Daily Stocks - third_day.csv')
-fourth_day = csv_to_dataframe('data/Daily Stocks - fourth_day.csv')
-fifth_day = csv_to_dataframe('data/Daily Stocks - fifth_day.csv')
-sixth_day = csv_to_dataframe('data/Daily Stocks - sixth_day.csv')
+#fourth_day = csv_to_dataframe('data/Daily Stocks - fourth_day.csv')
+#fifth_day = csv_to_dataframe('data/Daily Stocks - fifth_day.csv')
+#sixth_day = csv_to_dataframe('data/Daily Stocks - sixth_day.csv')
 
 smart_portfolio, smart_returns = create_portfolio(first_day)

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 from pathlib import Path
+import plotly.graph_objects as go
 from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
 # Set the title and favicon that appear in the Browser's tab bar.
@@ -130,14 +131,39 @@ col1, col2 = st.columns(2)
 
 # Display top performers in the first column
 with col1:
-    st.subheader("Top 10 Performers")
+    st.subheader(f'Top 10 Performers', divider='grey')
     top_performers_display = third_performers[['Combined ROI']].copy()
     top_performers_display.index.name = 'Ticker'
     st.dataframe(top_performers_display)
 
 # Display top losers in the second column
 with col2:
-    st.subheader("Bottom 10 Performers")
+    st.subheader(f'Top 10 Losers', divider='grey')
     top_losers_display = third_losers[['Combined ROI']].copy()
     top_losers_display.index.name = 'Ticker'
     st.dataframe(top_losers_display)
+
+
+
+# Prepare data for the donut chart
+grouped_by_sector = third_portfolio.groupby('Sector')['Allocation'].sum()
+labels_cap = grouped_by_sector.index
+values_cap = grouped_by_sector.values
+
+fig_sector = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
+
+st.header('Market Sector Distribution', divider='gray')
+st.plotly_chart(fig_sector)
+
+
+# Prepare data for the donut chart
+grouped_by_cap = third_portfolio.groupby('Market Cap')['Allocation'].sum()
+labels_cap = grouped_by_cap.index
+values_cap = grouped_by_cap.values
+
+fig_cap = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
+
+st.header('Market Capitalization Distribution', divider='gray')
+st.plotly_chart(fig_cap)
+
+print(grouped_by_cap)
