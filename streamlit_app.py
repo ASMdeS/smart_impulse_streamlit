@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import math
-from pathlib import Path
 import plotly.graph_objects as go
+from datetime import datetime, timedelta
 from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
 # Set the title and favicon that appear in the Browser's tab bar.
@@ -46,17 +46,50 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 ''
 
-min_date = stock_df['Date'].min().date()  # Convert to datetime.date
-max_date = stock_df['Date'].max().date()  # Convert to datetime.date
+# Assuming stock_df['Date'] is a datetime column
+min_date = stock_df['Date'].min().date()
+max_date = stock_df['Date'].max().date()
 
-# Slider for selecting date range
-from_date, to_date = st.slider(
-    'Select the date range:',
-    min_value=min_date,
-    max_value=max_date,
-    value=[min_date, max_date],
-    format="YYYY-MM-DD"
-)
+# Define period options
+period_options = {
+    '1 day': timedelta(days=1),
+    '1 month': timedelta(days=30),
+    '3 months': timedelta(days=90),
+    '6 months': timedelta(days=180),
+    '1 year': timedelta(days=365),
+    '2 years': timedelta(days=730),
+    '3 years': timedelta(days=1095),
+    'Maximum': max_date - min_date
+}
+
+# Select period
+selected_period = st.selectbox('Select the period:', list(period_options.keys()))
+
+# Calculate the from_date based on the selected period
+if selected_period == 'Maximum':
+    from_date = min_date
+else:
+    from_date = max_date - period_options[selected_period]
+
+# Slider for manual selection (optional)
+if selected_period == 'Custom':
+    from_date, to_date = st.slider(
+        'Select the date range:',
+        min_value=min_date,
+        max_value=max_date,
+        value=[min_date, max_date],
+        format="YYYY-MM-DD"
+    )
+else:
+    to_date = max_date
+
+# Display the selected date range
+st.write(f"Displaying data from {from_date} to {to_date}")
+
+# Filter the DataFrame based on the selected date range
+filtered_data = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
+
+# Your code to display the filtered data goes here
 
 tickers = stock_df.columns[1:]  # Exclude 'Date' column
 
