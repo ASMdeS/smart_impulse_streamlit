@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import timedelta
 from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
 # Set the title and favicon that appear in the Browser's tab bar.
