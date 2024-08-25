@@ -107,8 +107,8 @@ selected_stocks = st.multiselect(
 
 # Filter the data
 filtered_stock_df = stock_df[
-    (pd.to_datetime(stock_df['Date']) >= pd.to_datetime(from_date))
-    & (pd.to_datetime(stock_df['Date']) <= pd.to_datetime(to_date))
+    (stock_df['Date'] >= from_date)
+    & (stock_df['Date'] <= to_date)
     ]
 
 if selected_stocks:
