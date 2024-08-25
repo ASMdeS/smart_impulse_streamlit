@@ -87,7 +87,7 @@ else:
 st.write(f"Displaying data from {from_date} to {to_date}")
 
 # Filter the DataFrame based on the selected date range
-filtered_data = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
+filtered_stock_df = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
 
 # Your code to display the filtered data goes here
 
@@ -105,11 +105,6 @@ selected_stocks = st.multiselect(
 ''
 ''
 
-# Filter the data
-filtered_stock_df = stock_df[
-    (stock_df['Date'] >= from_date)
-    & (stock_df['Date'] <= to_date)
-    ]
 
 if selected_stocks:
     filtered_stock_df = filtered_stock_df[['Date'] + selected_stocks]
