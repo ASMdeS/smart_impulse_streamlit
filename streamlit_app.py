@@ -122,7 +122,14 @@ st.line_chart(
 
 # Display stock portfolio
 st.header(f'Stock Portfolio', divider='gray')
-st.dataframe(data=third_portfolio)
+
+# Aplicando coloração condicional
+def color_negative_red(value):
+    color = 'red' if value < 0 else 'green'
+    return f'color: {color}'
+
+colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
+st.dataframe(data=colored_portfolio)
 
 ''
 ''
@@ -194,4 +201,3 @@ fig_cap = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)]
 st.header('Market Capitalization Distribution', divider='gray')
 st.plotly_chart(fig_cap)
 
-print(grouped_by_cap)

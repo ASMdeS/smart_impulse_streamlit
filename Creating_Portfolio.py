@@ -44,7 +44,12 @@ def create_portfolio(initial_dataframe):
     portfolio['Investment'] = portfolio['Value']
     portfolio['Unrealized ROI'] = portfolio['Value'] / portfolio['Investment']
     portfolio['Materialized ROI'] = None
-
+    portfolio['Combined ROI'] = 1 - portfolio[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
+    portfolio['Days Holding'] = 0
+    ROI = portfolio.pop('Combined ROI')
+    portfolio.insert(0, 'Combined ROI', ROI)
+    Holding = portfolio.pop('Days Holding')
+    portfolio.insert(0, 'Days Holding', Holding)
 
     # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio.index.tolist()])
