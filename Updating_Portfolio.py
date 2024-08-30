@@ -71,7 +71,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     # Update Allocation and Value
     portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
     portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
-    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Value'] + portfolio_dataframe['Overdraft']) / portfolio_dataframe['Investment']
+    portfolio_dataframe['Unrealized ROI'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Investment']
     portfolio_dataframe['Combined ROI'] = portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1) - 1
     portfolio_dataframe['Days Holding'] += 1
 
