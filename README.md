@@ -8,7 +8,7 @@ returns. The dashboard provides comprehensive insights, including ROI calculatio
 and portfolio distribution, with real-time updates delivered through Telegram.
 
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://smart-impulse.streamlit.app/)
 
 ### How to run it on your own machine
 
