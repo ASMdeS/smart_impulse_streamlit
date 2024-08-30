@@ -30,6 +30,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         new_rows['Allocation'] = 0.02
         new_rows['Value'] = portfolio_dataframe['Allocation'] * 100000
         new_rows['Overdraft'] = 0
+        new_rows['Total Amount'] = new_rows['Value']
         new_rows['Yesterday Price'] = None
         new_rows['Today Price'] = final_dataframe.loc[new_stocks, 'Price']
         new_rows['Sell Price'] = None
@@ -68,18 +69,20 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[third_entry, 'Investment'] += 1500
     portfolio_dataframe.loc[third_entry, 'Quantity'] += 1500 / portfolio_dataframe['Third Entry Price']
     # Update Allocation and Value
-    portfolio_dataframe['Value'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
-    portfolio_dataframe['Allocation'] = portfolio_dataframe['Value'] / portfolio_dataframe['Value'].sum()
+    portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
+    portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
     portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Value'] + portfolio_dataframe['Overdraft']) / portfolio_dataframe['Investment']
     portfolio_dataframe['Combined ROI'] = portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1) - 1
     portfolio_dataframe['Days Holding'] += 1
 
-
-    # Calculating the overdraft
-    if portfolio_dataframe['Value'].sum() > 100000:
-        scaling_factor = 100000 / portfolio_dataframe['Value'].sum()
-        portfolio_dataframe['Overdraft'] = portfolio_dataframe['Value'] * (1 - scaling_factor)
-        portfolio_dataframe['Value'] = portfolio_dataframe['Value'] * scaling_factor
+    # Calculating the Overdraft
+    if portfolio_dataframe['Total Amount'].sum() > 100000:
+        scaling_factor = 100000 / portfolio_dataframe['Total Amount'].sum()
+        portfolio_dataframe['Value'] = portfolio_dataframe['Total Amount'] * scaling_factor
+        portfolio_dataframe['Overdraft'] = portfolio_dataframe['Total Amount'] - portfolio_dataframe['Value']
+    else:
+        portfolio_dataframe['Value'] = portfolio_dataframe['Total Amount']
+        portfolio_dataframe['Overdraft'] = 0
 
     top_performers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=False).head(10)
     top_losers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=True).head(10)
@@ -100,6 +103,8 @@ def create_returns(portfolio_dataframe):
 
 
 second_portfolio, second_performers, second_losers = update_portfolio(smart_portfolio, second_day)
+
+print(second_portfolio)
 
 third_portfolio, third_performers, third_losers = update_portfolio(second_portfolio, third_day)
 

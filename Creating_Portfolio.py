@@ -29,6 +29,7 @@ def create_portfolio(initial_dataframe):
     portfolio['Allocation'] = 1 / len(initial_dataframe)
     portfolio['Value'] = portfolio['Allocation'] * 100000
     portfolio['Overdraft'] = 0
+    portfolio['Total Amount'] = portfolio['Value']
     portfolio['Yesterday Price'] = None
     portfolio['Today Price'] = initial_dataframe['Price']
     portfolio['Sell Price'] = None
@@ -91,3 +92,5 @@ third_day = csv_to_dataframe('data/Daily Stocks - third_day.csv')
 #sixth_day = csv_to_dataframe('data/Daily Stocks - sixth_day.csv')
 
 smart_portfolio, smart_returns = create_portfolio(first_day)
+
+#print(smart_portfolio)
