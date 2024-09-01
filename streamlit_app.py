@@ -63,7 +63,7 @@ period_options = {
 }
 
 # Select period
-selected_period = st.selectbox('Select the period:', list(period_options.keys()))
+selected_period = st.selectbox('Select the period:', list(period_options.keys()), 4)
 
 # Calculate the from_date based on the selected period
 if selected_period == 'Maximum':
@@ -120,19 +120,6 @@ st.line_chart(
 ''
 ''
 
-# Display stock portfolio
-st.header(f'Stock Portfolio', divider='gray')
-
-# Aplicando coloração condicional
-def color_negative_red(value):
-    color = 'red' if value < 0 else 'green'
-    return f'color: {color}'
-
-colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
-st.dataframe(data=colored_portfolio)
-
-''
-''
 
 st.header(f'Selected Stocks Returns', divider='gray')
 
@@ -159,6 +146,21 @@ if selected_stocks:
                 delta=growth,
                 delta_color=delta_color
             )
+
+
+# Display stock portfolio
+st.header(f'Stock Portfolio', divider='gray')
+
+# Aplicando coloração condicional
+def color_negative_red(value):
+    color = 'red' if value < 0 else 'green'
+    return f'color: {color}'
+
+colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
+st.dataframe(data=colored_portfolio)
+
+''
+''
 
 
 # Create two columns

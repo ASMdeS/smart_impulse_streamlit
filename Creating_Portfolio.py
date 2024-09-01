@@ -4,6 +4,7 @@ import yfinance as yf
 
 pd.set_option('display.max_columns', 500)
 
+
 # Function to transform csv files in desired dataframes
 def csv_to_dataframe(file_name):
     # Transform csv in dataframe
@@ -20,6 +21,7 @@ def csv_to_dataframe(file_name):
         lambda x: "Small" if x < 2000 else "Medium" if x <= 10000 else "Large")
     # Returning the Dataframe
     return dataframe
+
 
 # Function to create the portfolio dataframe
 def create_portfolio(initial_dataframe):
@@ -52,16 +54,8 @@ def create_portfolio(initial_dataframe):
     Holding = portfolio.pop('Days Holding')
     portfolio.insert(0, 'Days Holding', Holding)
 
-    # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
-    latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio.index.tolist()])
-    # Creating the Stock Returns Dataframe
-    data = yf.download(portfolio.index.tolist(), start=latest_ipo)
-    # Extract the 'Close' prices
-    close_prices = data['Close']
-    # Transpose the DataFrame so that tickers are the index and dates are columns
-    returns = close_prices.T
+    return portfolio
 
-    return portfolio, returns
 
 def create_returns(initial_dataframe):
     # Download the historical data for each ticker
@@ -75,6 +69,7 @@ def create_returns(initial_dataframe):
 
     return df
 
+
 def get_ipo_date(ticker_symbol):
     stock_data = yf.Ticker(ticker_symbol)
     history = stock_data.history(period="max").tz_localize(None)
@@ -87,10 +82,10 @@ def get_ipo_date(ticker_symbol):
 first_day = csv_to_dataframe('data/Daily Stocks - first_day.csv')
 second_day = csv_to_dataframe('data/Daily Stocks - second_day.csv')
 third_day = csv_to_dataframe('data/Daily Stocks - third_day.csv')
-#fourth_day = csv_to_dataframe('data/Daily Stocks - fourth_day.csv')
-#fifth_day = csv_to_dataframe('data/Daily Stocks - fifth_day.csv')
-#sixth_day = csv_to_dataframe('data/Daily Stocks - sixth_day.csv')
+# fourth_day = csv_to_dataframe('data/Daily Stocks - fourth_day.csv')
+# fifth_day = csv_to_dataframe('data/Daily Stocks - fifth_day.csv')
+# sixth_day = csv_to_dataframe('data/Daily Stocks - sixth_day.csv')
 
-smart_portfolio, smart_returns = create_portfolio(first_day)
+smart_portfolio = create_portfolio(first_day)
 
-#print(smart_portfolio)
+# print(smart_portfolio)

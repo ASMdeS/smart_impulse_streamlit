@@ -1,5 +1,5 @@
 # Importing the Dataframes
-from Creating_Portfolio import get_ipo_date, first_day, second_day, third_day, smart_portfolio, smart_returns
+from Creating_Portfolio import get_ipo_date, first_day, second_day, third_day, smart_portfolio
 
 import pandas as pd
 import yfinance as yf
@@ -26,7 +26,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     if not new_stocks.empty:
         new_rows = pd.DataFrame(index=new_stocks)
         portfolio_dataframe['Sector'] = final_dataframe['Sector']
-        portfolio_dataframe['Market Category'] = final_dataframe['Market Cap ($M USD)']
+        portfolio_dataframe['Market Category'] = final_dataframe['Market Cap Category']
         new_rows['Allocation'] = 0.02
         new_rows['Value'] = portfolio_dataframe['Allocation'] * 100000
         new_rows['Overdraft'] = 0
@@ -90,25 +90,26 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     return portfolio_dataframe, top_performers, top_losers
 
 def create_returns(portfolio_dataframe):
+    #Getting the tickers
+    tickers = portfolio_dataframe.index.tolist()
     # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio_dataframe.index.tolist()])
     # Creating the Stock Returns Dataframe
-    data = yf.download(portfolio_dataframe.index.tolist(), start=latest_ipo)
+    data = yf.download(tickers, start=latest_ipo)
     # Extract the 'Close' prices
     close_prices = data['Close']
     # Transpose the DataFrame so that tickers are the index and dates are columns
     returns = close_prices.T
+
 
     return returns
 
 
 second_portfolio, second_performers, second_losers = update_portfolio(smart_portfolio, second_day)
 
-print(second_portfolio)
 
 third_portfolio, third_performers, third_losers = update_portfolio(second_portfolio, third_day)
 
-print(third_portfolio)
 
 third_returns = create_returns(third_portfolio)
 
