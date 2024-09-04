@@ -1,4 +1,5 @@
 # Importing the pandas library
+#import Firebase
 import pandas as pd
 import yfinance as yf
 
@@ -45,9 +46,9 @@ def create_portfolio(initial_dataframe):
     portfolio['Third Entry Price'] = None
     portfolio['Quantity'] = portfolio['Value'] / portfolio['First Entry Price']
     portfolio['Investment'] = portfolio['Value']
-    portfolio['Unrealized ROI'] = portfolio['Value'] / portfolio['Investment']
+    portfolio['Unrealized ROI'] = ((portfolio['Value'] / portfolio['Investment']) - 1) * 100
     portfolio['Materialized ROI'] = None
-    portfolio['Combined ROI'] = 1 - portfolio[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
+    portfolio['Combined ROI'] = portfolio[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
     portfolio['Days Holding'] = 0
     ROI = portfolio.pop('Combined ROI')
     portfolio.insert(0, 'Combined ROI', ROI)

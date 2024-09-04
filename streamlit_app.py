@@ -5,27 +5,12 @@ import plotly.graph_objects as go
 from datetime import timedelta
 from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
-# Set the title and favicon that appear in the Browser's tab bar.
+# Configuração da página
 st.set_page_config(
     page_title='Portfolio Tracking for Smart Impulse',
-    page_icon=':earth_americas:',  # This is an emoji shortcode. Could be a URL too.
+    page_icon=':earth_americas:',
+    layout="wide"
 )
-
-
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_stock_data():
-    """Prepare stock data from second_returns DataFrame."""
-    # Pivot the DataFrame to have 'Date' as the index and 'Ticker' as columns
-    stock_df = third_returns.T.reset_index()
-    stock_df = stock_df.rename(columns={'index': 'Date'})
-    stock_df['Date'] = pd.to_datetime(stock_df['Date'])
-    return stock_df
-
-
-stock_df = get_stock_data()
 
 # -----------------------------------------------------------------------------
 # Draw the actual page
@@ -46,11 +31,22 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 ''
 
-# Assuming stock_df['Date'] is a datetime column
+
+# Função para obter dados de ações
+@st.cache_data
+def get_stock_data():
+    stock_df = third_returns.T.reset_index()
+    stock_df = stock_df.rename(columns={'index': 'Date'})
+    stock_df['Date'] = pd.to_datetime(stock_df['Date'])
+    return stock_df
+
+
+stock_df = get_stock_data()
+
+# Seleção de período
 min_date = stock_df['Date'].min().date()
 max_date = stock_df['Date'].max().date()
 
-# Define period options
 period_options = {
     '1 day': timedelta(days=1),
     '1 month': timedelta(days=30),
@@ -62,65 +58,69 @@ period_options = {
     'Maximum': max_date - min_date
 }
 
-# Select period
 selected_period = st.selectbox('Select the period:', list(period_options.keys()), 4)
 
-# Calculate the from_date based on the selected period
 if selected_period == 'Maximum':
     from_date = min_date
 else:
     from_date = max_date - period_options[selected_period]
 
-# Slider for manual selection (optional)
-if selected_period == 'Custom':
-    from_date, to_date = st.slider(
-        'Select the date range:',
-        min_value=min_date,
-        max_value=max_date,
-        value=[min_date, max_date],
-        format="YYYY-MM-DD"
-    )
-else:
-    to_date = max_date
+to_date = max_date
 
-# Display the selected date range
 st.write(f"Displaying data from {from_date} to {to_date}")
 
-# Filter the DataFrame based on the selected date range
+# Filtrar DataFrame
 filtered_stock_df = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
 
-# Your code to display the filtered data goes here
-
-tickers = stock_df.columns[1:]  # Exclude 'Date' column
+tickers = stock_df.columns[1:]
 
 if not len(tickers):
     st.warning("No stocks available to select")
 
-selected_stocks = st.multiselect(
-    'Which stocks would you like to view?',
-    tickers,
-    [])
-
-''
-''
-''
-
+selected_stocks = st.multiselect('Which stocks would you like to view?', tickers, [])
 
 if selected_stocks:
     filtered_stock_df = filtered_stock_df[['Date'] + selected_stocks]
 
+# Tabela de Portfólio no topo
+st.header(f'Stock Portfolio', divider='gray')
+
+
+def color_negative_red(value):
+    color = 'red' if value < 0 else 'green'
+    return f'color: {color}'
+
+
+total = third_portfolio.sum(numeric_only=True)
+colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
+colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
+st.dataframe(data=colored_portfolio, height=300)
+
+col1, col2, col3 = st.columns(3)
+
+sum_amount = int(third_portfolio["Total Amount"].sum())
+sum_investment = int(third_portfolio["Investment"].sum())
+percentage_return = ((sum_investment / sum_amount) - 1) * 100
+
+with col1:
+    st.metric(label=f'Total Amount', value=sum_amount)
+
+with col2:
+    st.metric(label=f'Total Investment', value=sum_investment)
+
+with col3:
+    st.metric(label=f'Total Investment', value=f'{percentage_return:.2f}%')
+
+
+# Adicionando o total geral
+st.write("Total Geral:")
+st.write(total)
+
+# Gráfico de Preços das Ações
 st.header('Stock Prices over Time', divider='gray')
+st.line_chart(filtered_stock_df.set_index('Date'))
 
-''
-
-st.line_chart(
-    filtered_stock_df.set_index('Date'),
-)
-
-''
-''
-
-
+# Retornos das Ações Selecionadas
 st.header(f'Selected Stocks Returns', divider='gray')
 
 cols = st.columns(4)
@@ -128,7 +128,6 @@ cols = st.columns(4)
 if selected_stocks:
     for i, ticker in enumerate(selected_stocks):
         col = cols[i % len(cols)]
-
         with col:
             first_price = filtered_stock_df.iloc[0][ticker]
             last_price = filtered_stock_df.iloc[-1][ticker]
@@ -140,66 +139,48 @@ if selected_stocks:
                 growth = f'{last_price / first_price:,.2f}x'
                 delta_color = 'normal'
 
-            st.metric(
-                label=f'{ticker} Price',
-                value=f'{last_price:,.2f}',
-                delta=growth,
-                delta_color=delta_color
-            )
+            st.metric(label=f'{ticker} Price', value=f'{last_price:,.2f}', delta=growth, delta_color=delta_color)
 
+# Exibir ações fechadas e desempenho
+st.header(f'Closed Positions', divider='gray')
+# Aqui você deve adicionar a lógica para exibir as ações fechadas e seu desempenho.
 
-# Display stock portfolio
-st.header(f'Stock Portfolio', divider='gray')
-
-# Aplicando coloração condicional
-def color_negative_red(value):
-    color = 'red' if value < 0 else 'green'
-    return f'color: {color}'
-
-colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
-st.dataframe(data=colored_portfolio)
-
-''
-''
-
-
-# Create two columns
+# Exibir top performers e losers
 col1, col2 = st.columns(2)
 
-# Display top performers in the first column
 with col1:
     st.subheader(f'Top 10 Performers', divider='grey')
     top_performers_display = third_performers[['Combined ROI']].copy()
     top_performers_display.index.name = 'Ticker'
     st.dataframe(top_performers_display)
 
-# Display top losers in the second column
 with col2:
     st.subheader(f'Top 10 Losers', divider='grey')
     top_losers_display = third_losers[['Combined ROI']].copy()
     top_losers_display.index.name = 'Ticker'
     st.dataframe(top_losers_display)
 
-
-
-# Prepare data for the donut chart
-grouped_by_sector = third_portfolio.groupby('Sector')['Allocation'].sum()
-labels_cap = grouped_by_sector.index
-values_cap = grouped_by_sector.values
-
-fig_sector = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
-
-st.header('Market Sector Distribution', divider='gray')
-st.plotly_chart(fig_sector)
-
+# Create two columns
+col1, col2 = st.columns(2)
 
 # Prepare data for the donut chart
-grouped_by_cap = third_portfolio.groupby('Market Cap')['Allocation'].sum()
-labels_cap = grouped_by_cap.index
-values_cap = grouped_by_cap.values
+with col1:
+    grouped_by_sector = third_portfolio.groupby('Sector')['Allocation'].sum()
+    labels_cap = grouped_by_sector.index
+    values_cap = grouped_by_sector.values
 
-fig_cap = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
+    fig_sector = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
 
-st.header('Market Capitalization Distribution', divider='gray')
-st.plotly_chart(fig_cap)
+    st.header('Market Sector Distribution', divider='gray')
+    st.plotly_chart(fig_sector)
 
+# Prepare data for the donut chart
+with col2:
+    grouped_by_cap = third_portfolio.groupby('Market Cap')['Allocation'].sum()
+    labels_cap = grouped_by_cap.index
+    values_cap = grouped_by_cap.values
+
+    fig_cap = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
+
+    st.header('Market Capitalization Distribution', divider='gray')
+    st.plotly_chart(fig_cap)

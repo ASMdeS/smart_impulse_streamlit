@@ -44,7 +44,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         new_rows['Third Entry Price'] = None
         new_rows['Quantity'] = new_rows['Value'] / new_rows['First Entry Price']
         new_rows['Investment'] = new_rows['Value']
-        new_rows['Unrealized ROI'] = new_rows['Value'] / new_rows['Investment']
+        new_rows['Unrealized ROI'] = ((new_rows['Value'] / new_rows['Investment']) - 1) * 100
         new_rows['Materialized ROI'] = None
         new_rows['Combined ROI'] = 1 - new_rows[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
         new_rows['Days Holding'] = 0
@@ -71,8 +71,8 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     # Update Allocation and Value
     portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
     portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
-    portfolio_dataframe['Unrealized ROI'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Investment']
-    portfolio_dataframe['Combined ROI'] = portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1) - 1
+    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe['Investment'] - 1) * 100
+    portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
     portfolio_dataframe['Days Holding'] += 1
 
     # Calculating the Overdraft
