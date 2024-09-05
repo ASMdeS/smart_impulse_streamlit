@@ -47,8 +47,5 @@ for blob in blobs:
             # Download the file
             blob.download_to_filename(local_path)
             print(f'File downloaded to {local_path}')
-            if
-
 
 print('All missing files have been downloaded.')
-
