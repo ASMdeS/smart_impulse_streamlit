@@ -1,5 +1,5 @@
 # Importing the Dataframes
-from Creating_Portfolio import get_ipo_date, first_day, second_day, third_day, smart_portfolio
+from Creating_Portfolio import get_ipo_date
 
 import pandas as pd
 import yfinance as yf
@@ -20,7 +20,8 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[sold, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
     # Update Daily Count
     portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
-    portfolio_dataframe.loc[(portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']), 'Days Since Second Entry'] += 1
+    portfolio_dataframe.loc[
+        (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']), 'Days Since Second Entry'] += 1
     # Add new stocks that were not in the portfolio before
     new_stocks = final_dataframe.index.difference(portfolio_dataframe.index)
     if not new_stocks.empty:
@@ -57,13 +58,16 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         portfolio_dataframe = pd.concat([portfolio_dataframe, new_rows])
 
     # Second Entry Action
-    second_entry = (~portfolio_dataframe['Second Entry']) & ((portfolio_dataframe['Days Since First Entry'] == 90) | (portfolio_dataframe['Today Price'] > portfolio_dataframe['First Entry Price'] * 1.2))
+    second_entry = (~portfolio_dataframe['Second Entry']) & ((portfolio_dataframe['Days Since First Entry'] == 90) | (
+                portfolio_dataframe['Today Price'] > portfolio_dataframe['First Entry Price'] * 1.2))
     portfolio_dataframe.loc[second_entry, 'Second Entry'] = True
     portfolio_dataframe.loc[second_entry, 'Second Entry Price'] = portfolio_dataframe['Today Price']
     portfolio_dataframe.loc[second_entry, 'Investment'] += 1500
     portfolio_dataframe.loc[second_entry, 'Quantity'] += 1500 / portfolio_dataframe['Second Entry Price']
     # Third Entry Action
-    third_entry = (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']) & ((portfolio_dataframe['Days Since Second Entry'] == 90) | (portfolio_dataframe['Today Price'] > portfolio_dataframe['Second Entry Price'] * 1.2))
+    third_entry = (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']) & (
+                (portfolio_dataframe['Days Since Second Entry'] == 90) | (
+                    portfolio_dataframe['Today Price'] > portfolio_dataframe['Second Entry Price'] * 1.2))
     portfolio_dataframe.loc[third_entry, 'Third Entry'] = True
     portfolio_dataframe.loc[third_entry, 'Third Entry Price'] = portfolio_dataframe['Today Price']
     portfolio_dataframe.loc[third_entry, 'Investment'] += 1500
@@ -71,7 +75,8 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     # Update Allocation and Value
     portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
     portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
-    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe['Investment'] - 1) * 100
+    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe[
+        'Investment'] - 1) * 100
     portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
     portfolio_dataframe['Days Holding'] += 1
 
@@ -84,13 +89,11 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         portfolio_dataframe['Value'] = portfolio_dataframe['Total Amount']
         portfolio_dataframe['Overdraft'] = 0
 
-    top_performers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=False).head(10)
-    top_losers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=True).head(10)
+    return portfolio_dataframe
 
-    return portfolio_dataframe, top_performers, top_losers
 
 def create_returns(portfolio_dataframe):
-    #Getting the tickers
+    # Getting the tickers
     tickers = portfolio_dataframe.index.tolist()
     # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio_dataframe.index.tolist()])
@@ -101,16 +104,8 @@ def create_returns(portfolio_dataframe):
     # Transpose the DataFrame so that tickers are the index and dates are columns
     returns = close_prices.T
 
-
     return returns
 
 
-second_portfolio, second_performers, second_losers = update_portfolio(smart_portfolio, second_day)
-
-
-third_portfolio, third_performers, third_losers = update_portfolio(second_portfolio, third_day)
-
-
-third_returns = create_returns(third_portfolio)
-
-grouped_by_cap = third_portfolio.groupby('Market Cap').sum()
+#    top_performers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=False).head(10)
+#    top_losers = portfolio_dataframe.sort_values(by='Combined ROI', ascending=True).head(10)

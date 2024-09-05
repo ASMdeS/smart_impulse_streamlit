@@ -3,7 +3,8 @@ import pandas as pd
 import math
 import plotly.graph_objects as go
 from datetime import timedelta
-from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
+from Creating_Portfolio import third_portfolio, third_returns
+#from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
 
 # Configuração da página
 st.set_page_config(
@@ -91,7 +92,6 @@ def color_negative_red(value):
     return f'color: {color}'
 
 
-total = third_portfolio.sum(numeric_only=True)
 colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
 colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
 st.dataframe(data=colored_portfolio, height=300)
@@ -100,7 +100,7 @@ col1, col2, col3 = st.columns(3)
 
 sum_amount = int(third_portfolio["Total Amount"].sum())
 sum_investment = int(third_portfolio["Investment"].sum())
-percentage_return = ((sum_investment / sum_amount) - 1) * 100
+percentage_return = ((sum_amount / sum_investment) - 1) * 100
 
 with col1:
     st.metric(label=f'Total Amount', value=sum_amount)
@@ -110,11 +110,6 @@ with col2:
 
 with col3:
     st.metric(label=f'Total Investment', value=f'{percentage_return:.2f}%')
-
-
-# Adicionando o total geral
-st.write("Total Geral:")
-st.write(total)
 
 # Gráfico de Preços das Ações
 st.header('Stock Prices over Time', divider='gray')
@@ -150,13 +145,15 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader(f'Top 10 Performers', divider='grey')
-    top_performers_display = third_performers[['Combined ROI']].copy()
+    top_performers = third_portfolio.sort_values(by='Combined ROI', ascending=False).head(10)
+    top_performers_display = top_performers[['Combined ROI']].copy()
     top_performers_display.index.name = 'Ticker'
     st.dataframe(top_performers_display)
 
 with col2:
     st.subheader(f'Top 10 Losers', divider='grey')
-    top_losers_display = third_losers[['Combined ROI']].copy()
+    top_losers = third_portfolio.sort_values(by='Combined ROI', ascending=True).head(10)
+    top_losers_display = top_losers[['Combined ROI']].copy()
     top_losers_display.index.name = 'Ticker'
     st.dataframe(top_losers_display)
 
