@@ -169,10 +169,10 @@ def create_returns(portfolio_dataframe):
     return returns
 
 
-first_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-02.xlsx')
+'''first_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-02.xlsx')
 second_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-03.xlsx')
 third_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-04.xlsx')
 
 smart_portfolio = create_portfolio(first_day)
 third_portfolio = update_portfolio(smart_portfolio, second_day)
-third_returns = create_returns(third_portfolio)
+third_returns = create_returns(third_portfolio)'''

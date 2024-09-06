@@ -3,8 +3,8 @@ import pandas as pd
 import math
 import plotly.graph_objects as go
 from datetime import timedelta
-from Creating_Portfolio import third_portfolio, third_returns
-#from Updating_Portfolio import third_portfolio, third_returns, third_performers, third_losers
+from Firebase import smart_portfolio, smart_returns
+
 
 # Configuração da página
 st.set_page_config(
@@ -36,7 +36,7 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 # Função para obter dados de ações
 @st.cache_data
 def get_stock_data():
-    stock_df = third_returns.T.reset_index()
+    stock_df = smart_returns.T.reset_index()
     stock_df = stock_df.rename(columns={'index': 'Date'})
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
     return stock_df
@@ -92,14 +92,14 @@ def color_negative_red(value):
     return f'color: {color}'
 
 
-colored_portfolio = third_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
+colored_portfolio = smart_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
 colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
 st.dataframe(data=colored_portfolio, height=300)
 
 col1, col2, col3 = st.columns(3)
 
-sum_amount = int(third_portfolio["Total Amount"].sum())
-sum_investment = int(third_portfolio["Investment"].sum())
+sum_amount = int(smart_portfolio["Total Amount"].sum())
+sum_investment = int(smart_portfolio["Investment"].sum())
 percentage_return = ((sum_amount / sum_investment) - 1) * 100
 
 with col1:
@@ -145,14 +145,14 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader(f'Top 10 Performers', divider='grey')
-    top_performers = third_portfolio.sort_values(by='Combined ROI', ascending=False).head(10)
+    top_performers = smart_portfolio.sort_values(by='Combined ROI', ascending=False).head(10)
     top_performers_display = top_performers[['Combined ROI']].copy()
     top_performers_display.index.name = 'Ticker'
     st.dataframe(top_performers_display)
 
 with col2:
     st.subheader(f'Top 10 Losers', divider='grey')
-    top_losers = third_portfolio.sort_values(by='Combined ROI', ascending=True).head(10)
+    top_losers = smart_portfolio.sort_values(by='Combined ROI', ascending=True).head(10)
     top_losers_display = top_losers[['Combined ROI']].copy()
     top_losers_display.index.name = 'Ticker'
     st.dataframe(top_losers_display)
@@ -162,7 +162,7 @@ col1, col2 = st.columns(2)
 
 # Prepare data for the donut chart
 with col1:
-    grouped_by_sector = third_portfolio.groupby('Sector')['Allocation'].sum()
+    grouped_by_sector = smart_portfolio.groupby('Sector')['Allocation'].sum()
     labels_cap = grouped_by_sector.index
     values_cap = grouped_by_sector.values
 
@@ -173,7 +173,7 @@ with col1:
 
 # Prepare data for the donut chart
 with col2:
-    grouped_by_cap = third_portfolio.groupby('Market Cap')['Allocation'].sum()
+    grouped_by_cap = smart_portfolio.groupby('Market Cap')['Allocation'].sum()
     labels_cap = grouped_by_cap.index
     values_cap = grouped_by_cap.values
 
