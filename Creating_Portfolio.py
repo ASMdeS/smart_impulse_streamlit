@@ -32,6 +32,7 @@ def create_portfolio(initial_dataframe):
     portfolio['Market Cap'] = initial_dataframe['Market Cap Category']
     portfolio['Allocation'] = 1 / len(initial_dataframe)
     portfolio['Value'] = portfolio['Allocation'] * 100000
+    portfolio['Sell Value'] = None
     portfolio['Overdraft'] = 0
     portfolio['Total Amount'] = portfolio['Value']
     portfolio['Yesterday Price'] = None
@@ -76,10 +77,14 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe['Today Price'] = final_dataframe['Price']
     # Check if any stocks were sold
     sold = ~portfolio_dataframe.index.isin(final_dataframe.index)
-    portfolio_dataframe.loc[sold, 'Sell Price'] = portfolio_dataframe['Yesterday Price']
-    portfolio_dataframe.loc[sold, 'Quantity'] = 0
+    active_stock = portfolio_dataframe['First Entry']
+    portfolio_dataframe.loc[sold & active_stock, 'Sell Price'] = portfolio_dataframe['Yesterday Price']
+    portfolio_dataframe.loc[sold & active_stock, 'Sell Value'] = portfolio_dataframe['Sell Price'] * \
+                                                                 portfolio_dataframe['Quantity']
+    portfolio_dataframe.loc[sold & active_stock, 'Quantity'] = 0
     portfolio_dataframe.loc[sold, 'First Entry'] = False
-    portfolio_dataframe.loc[sold, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
+    portfolio_dataframe.loc[sold & active_stock, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
+    portfolio_dataframe.loc[active_stock, 'Days Holding'] += 1
     # Update Daily Count
     portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
     portfolio_dataframe.loc[
@@ -88,11 +93,12 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     new_stocks = final_dataframe.index.difference(portfolio_dataframe.index)
     if not new_stocks.empty:
         new_rows = pd.DataFrame(index=new_stocks)
-        portfolio_dataframe['Sector'] = final_dataframe['Sector']
-        portfolio_dataframe['Market Category'] = final_dataframe['Market Cap Category']
+        new_rows['Sector'] = final_dataframe.loc[new_stocks, 'Sector']
+        portfolio_dataframe['Market Category'] = final_dataframe.loc[new_stocks, 'Market Cap Category']
         new_rows['Allocation'] = 0.02
-        new_rows['Value'] = portfolio_dataframe['Allocation'] * 100000
+        new_rows['Value'] = new_rows['Allocation'] * 100000
         new_rows['Overdraft'] = 0
+        new_rows['Sell Value'] = None
         new_rows['Total Amount'] = new_rows['Value']
         new_rows['Yesterday Price'] = None
         new_rows['Today Price'] = final_dataframe.loc[new_stocks, 'Price']
@@ -140,7 +146,6 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe[
         'Investment'] - 1) * 100
     portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
-    portfolio_dataframe['Days Holding'] += 1
 
     # Calculating the Overdraft
     if portfolio_dataframe['Total Amount'].sum() > 100000:
@@ -169,10 +174,46 @@ def create_returns(portfolio_dataframe):
     return returns
 
 
-'''first_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-02.xlsx')
-second_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-03.xlsx')
-third_day = excel_to_dataframe('data/Screener-Smart-Impulse-free-25-rows-Analyst-Estimates-2024-09-04.xlsx')
+def create_mean_cumulative_returns(portfolio_dataframe):
+    # Getting the tickers
+    tickers = portfolio_dataframe.index.tolist()
 
-smart_portfolio = create_portfolio(first_day)
-third_portfolio = update_portfolio(smart_portfolio, second_day)
-third_returns = create_returns(third_portfolio)'''
+    # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
+    latest_ipo = max([get_ipo_date(ticker) for ticker in tickers])
+
+    # Download stock data starting from the latest IPO date
+    data = yf.download(tickers, start=latest_ipo)
+
+    # Extract the 'Close' prices
+    close_prices = data['Close']
+
+    # Calculate daily returns (percentage change in closing prices)
+    daily_returns = close_prices.pct_change().dropna()
+
+    # Calcula o retorno cumulativo do portfólio
+    cumulative_returns = (1 + daily_returns).cumprod() - 1
+
+    # Calcula a média dos retornos cumulativos para todas as ações do portfólio
+    mean_cumulative_returns = cumulative_returns.mean(axis=1)
+
+    # Calcula o retorno cumulativo dos principais índices
+    indexes = ['^GSPC', '^IXIC', '^DJI']
+    data_indexes = yf.download(indexes, start=latest_ipo)
+
+    close_prices_indexes = data_indexes['Close']
+
+    # Calcula os retornos diários (variação percentual nos preços de fechamento)
+    daily_returns_indexes = close_prices_indexes.pct_change().dropna()
+
+    # Calcula o retorno cumulativo dos índices
+    cumulative_returns_indexes = (1 + daily_returns_indexes).cumprod() - 1
+
+    # Combina o retorno cumulativo do portfólio com os retornos dos índices
+    mean_cumulative_returns.name = "Portfolio"  # Nomeia a série do portfólio
+    total_cumulative_returns = pd.concat([mean_cumulative_returns, cumulative_returns_indexes], axis=1)
+
+    # Renomeia as colunas dos índices
+    total_cumulative_returns = total_cumulative_returns.rename(
+        columns={"^DJI": "Dow Jones", "^IXIC": "NASDAQ", "^GSPC": "S&P 500"})
+
+    return total_cumulative_returns

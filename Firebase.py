@@ -79,9 +79,6 @@ for blob in blobs:
 
 print('All missing files have been downloaded.')
 
-
-
 smart_returns = Creating_Portfolio.create_returns(smart_portfolio)
 
-# Display the final portfolio
-print(smart_portfolio)
+smart_cumulative_returns = Creating_Portfolio.create_mean_cumulative_returns(smart_portfolio)

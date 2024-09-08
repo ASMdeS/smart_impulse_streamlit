@@ -3,8 +3,7 @@ import pandas as pd
 import math
 import plotly.graph_objects as go
 from datetime import timedelta
-from Firebase import smart_portfolio, smart_returns
-
+from Firebase import smart_portfolio, smart_returns, smart_cumulative_returns
 
 # Configuração da página
 st.set_page_config(
@@ -96,11 +95,12 @@ colored_portfolio = smart_portfolio.style.applymap(color_negative_red, subset=['
 colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
 st.dataframe(data=colored_portfolio, height=300)
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 sum_amount = int(smart_portfolio["Total Amount"].sum())
 sum_investment = int(smart_portfolio["Investment"].sum())
-percentage_return = ((sum_amount / sum_investment) - 1) * 100
+sum_sold = int(smart_portfolio["Sell Value"].sum())
+percentage_return = (((sum_amount + sum_sold) / sum_investment) - 1) * 100
 
 with col1:
     st.metric(label=f'Total Amount', value=sum_amount)
@@ -109,6 +109,9 @@ with col2:
     st.metric(label=f'Total Investment', value=sum_investment)
 
 with col3:
+    st.metric(label=f'Total Sold', value=sum_sold)
+
+with col4:
     st.metric(label=f'Total Investment', value=f'{percentage_return:.2f}%')
 
 # Gráfico de Preços das Ações
@@ -116,11 +119,11 @@ st.header('Stock Prices over Time', divider='gray')
 st.line_chart(filtered_stock_df.set_index('Date'))
 
 # Retornos das Ações Selecionadas
-st.header(f'Selected Stocks Returns', divider='gray')
 
-cols = st.columns(4)
 
 if selected_stocks:
+    st.header(f'Selected Stocks Returns', divider='gray')
+    cols = st.columns(4)
     for i, ticker in enumerate(selected_stocks):
         col = cols[i % len(cols)]
         with col:
@@ -135,10 +138,6 @@ if selected_stocks:
                 delta_color = 'normal'
 
             st.metric(label=f'{ticker} Price', value=f'{last_price:,.2f}', delta=growth, delta_color=delta_color)
-
-# Exibir ações fechadas e desempenho
-st.header(f'Closed Positions', divider='gray')
-# Aqui você deve adicionar a lógica para exibir as ações fechadas e seu desempenho.
 
 # Exibir top performers e losers
 col1, col2 = st.columns(2)
