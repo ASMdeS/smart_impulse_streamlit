@@ -89,6 +89,29 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
     portfolio_dataframe.loc[
         (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']), 'Days Since Second Entry'] += 1
+
+    # Second Entry Action
+    second_entry = (~portfolio_dataframe['Second Entry']) & ((portfolio_dataframe['Days Since First Entry'] == 90) | (
+            portfolio_dataframe['Today Price'] > portfolio_dataframe['First Entry Price'] * 1.2))
+    portfolio_dataframe.loc[second_entry, 'Second Entry'] = True
+    portfolio_dataframe.loc[second_entry, 'Second Entry Price'] = portfolio_dataframe['Today Price']
+    portfolio_dataframe.loc[second_entry, 'Investment'] += 1500
+    portfolio_dataframe.loc[second_entry, 'Quantity'] += 1500 / portfolio_dataframe['Second Entry Price']
+    # Third Entry Action
+    third_entry = (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']) & (
+            (portfolio_dataframe['Days Since Second Entry'] == 90) | (
+            portfolio_dataframe['Today Price'] > portfolio_dataframe['Second Entry Price'] * 1.2))
+    portfolio_dataframe.loc[third_entry, 'Third Entry'] = True
+    portfolio_dataframe.loc[third_entry, 'Third Entry Price'] = portfolio_dataframe['Today Price']
+    portfolio_dataframe.loc[third_entry, 'Investment'] += 1500
+    portfolio_dataframe.loc[third_entry, 'Quantity'] += 1500 / portfolio_dataframe['Third Entry Price']
+    # Update Allocation and Value
+    portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
+    portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
+    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe[
+        'Investment'] - 1) * 100
+    portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
+
     # Add new stocks that were not in the portfolio before
     new_stocks = final_dataframe.index.difference(portfolio_dataframe.index)
     if not new_stocks.empty:
@@ -124,28 +147,6 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
 
         # Add new rows to the portfolio dataframe
         portfolio_dataframe = pd.concat([portfolio_dataframe, new_rows])
-
-    # Second Entry Action
-    second_entry = (~portfolio_dataframe['Second Entry']) & ((portfolio_dataframe['Days Since First Entry'] == 90) | (
-            portfolio_dataframe['Today Price'] > portfolio_dataframe['First Entry Price'] * 1.2))
-    portfolio_dataframe.loc[second_entry, 'Second Entry'] = True
-    portfolio_dataframe.loc[second_entry, 'Second Entry Price'] = portfolio_dataframe['Today Price']
-    portfolio_dataframe.loc[second_entry, 'Investment'] += 1500
-    portfolio_dataframe.loc[second_entry, 'Quantity'] += 1500 / portfolio_dataframe['Second Entry Price']
-    # Third Entry Action
-    third_entry = (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']) & (
-            (portfolio_dataframe['Days Since Second Entry'] == 90) | (
-            portfolio_dataframe['Today Price'] > portfolio_dataframe['Second Entry Price'] * 1.2))
-    portfolio_dataframe.loc[third_entry, 'Third Entry'] = True
-    portfolio_dataframe.loc[third_entry, 'Third Entry Price'] = portfolio_dataframe['Today Price']
-    portfolio_dataframe.loc[third_entry, 'Investment'] += 1500
-    portfolio_dataframe.loc[third_entry, 'Quantity'] += 1500 / portfolio_dataframe['Third Entry Price']
-    # Update Allocation and Value
-    portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
-    portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
-    portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe[
-        'Investment'] - 1) * 100
-    portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
 
     # Calculating the Overdraft
     if portfolio_dataframe['Total Amount'].sum() > 100000:

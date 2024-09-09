@@ -1,9 +1,13 @@
+import os
+import firebase_admin
+from firebase_admin import credentials, storage
 import streamlit as st
+import Creating_Portfolio
 import pandas as pd
 import math
 import plotly.graph_objects as go
 from datetime import timedelta
-from Firebase import smart_portfolio, smart_returns, smart_cumulative_returns
+
 
 # Configuração da página
 st.set_page_config(
@@ -31,8 +35,79 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 ''
 
+# Cache the Firebase initialization to avoid multiple initializations
+@st.cache_resource
+def init_firebase():
+    firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
+    cred = credentials.Certificate(firebase_credentials)
+    # Initialize the Firebase Admin SDK (cached)
+    return firebase_admin.initialize_app(cred, {
+        'storageBucket': 'smt-bot-staging'
+    })
 
-# Função para obter dados de ações
+# Initialize Firebase
+firebase_app = init_firebase()
+
+# Access the Storage bucket
+bucket = storage.bucket()
+
+# Folder and local paths
+folder_path = 'smart_impulse'
+data_dir = 'data'
+csv_file_path = os.path.join(data_dir, 'smart_portfolio.csv')
+
+# Ensure the 'data' directory exists
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+
+# Check if the smart portfolio CSV already exists
+if os.path.exists(csv_file_path):
+    # Load the existing portfolio from CSV
+    smart_portfolio = pd.read_csv(csv_file_path, index_col=0)
+    porfolio_created = True
+    print("Smart portfolio loaded from CSV.")
+else:
+    smart_portfolio = pd.DataFrame()  # Start with an empty DataFrame
+    porfolio_created = False
+
+# List all files in the specified folder in Firebase Storage
+blobs = list(bucket.list_blobs(prefix=folder_path))
+
+# Get the list of files already downloaded in the "data" directory
+local_files = os.listdir(data_dir)
+
+# Download files not in the "data" directory
+for blob in blobs:
+    original_filename = os.path.basename(blob.name)
+
+    if original_filename:  # Skip directories or empty filenames
+        new_filename = original_filename[-15:]
+
+        # Download only if the file does not exist locally
+        if new_filename not in local_files:
+            local_path = os.path.join(data_dir, new_filename)
+            blob.download_to_filename(local_path)
+            print(f'File downloaded to {local_path}')
+            new_dataframe = Creating_Portfolio.excel_to_dataframe(local_path)
+
+            # Create or update the portfolio
+            if smart_portfolio.empty:
+                smart_portfolio = Creating_Portfolio.create_portfolio(new_dataframe)
+            else:
+                smart_portfolio = Creating_Portfolio.update_portfolio(smart_portfolio, new_dataframe)
+
+            # Save the portfolio to CSV after every update
+            smart_portfolio.to_csv(csv_file_path)
+            print(f'Smart portfolio updated and saved to {csv_file_path}')
+            local_files = os.listdir(data_dir)
+
+print('All missing files have been downloaded.')
+
+# Generate returns and cumulative returns
+smart_returns = Creating_Portfolio.create_returns(smart_portfolio)
+smart_cumulative_returns = Creating_Portfolio.create_mean_cumulative_returns(smart_portfolio)
+
+
 @st.cache_data
 def get_stock_data():
     stock_df = smart_returns.T.reset_index()
@@ -119,8 +194,6 @@ st.header('Stock Prices over Time', divider='gray')
 st.line_chart(filtered_stock_df.set_index('Date'))
 
 # Retornos das Ações Selecionadas
-
-
 if selected_stocks:
     st.header(f'Selected Stocks Returns', divider='gray')
     cols = st.columns(4)
@@ -139,22 +212,41 @@ if selected_stocks:
 
             st.metric(label=f'{ticker} Price', value=f'{last_price:,.2f}', delta=growth, delta_color=delta_color)
 
-# Exibir top performers e losers
+
+# Criação de um DataFrame vazio
+growth_data = []
+
+for ticker in tickers:
+    first_price = filtered_stock_df[ticker].iloc[0]
+    last_price = filtered_stock_df[ticker].iloc[-1]
+
+    if not pd.isna(first_price) and not pd.isna(last_price) and first_price != 0:
+        growth = (last_price - first_price) / first_price * 100
+        # Em vez de append, armazenamos os dados em uma lista
+        growth_data.append({'Stock': ticker, 'Growth (%)': growth})
+
+# Agora criamos o DataFrame a partir da lista
+growth_df = pd.DataFrame(growth_data)
+
+# Classificar as 10 ações com maior crescimento
+top_10_growth = growth_df.sort_values(by='Growth (%)', ascending=False).head(10).reset_index(drop=True)
+top_10_growth.index = top_10_growth.index + 1
+
+# Classificar as 10 ações com pior desempenho
+worst_10_growth = growth_df.sort_values(by='Growth (%)', ascending=True).head(10).reset_index(drop=True)
+worst_10_growth.index = worst_10_growth.index + 1
+
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader(f'Top 10 Performers', divider='grey')
-    top_performers = smart_portfolio.sort_values(by='Combined ROI', ascending=False).head(10)
-    top_performers_display = top_performers[['Combined ROI']].copy()
-    top_performers_display.index.name = 'Ticker'
-    st.dataframe(top_performers_display)
+    # Exibir a tabela das 10 ações com maior crescimento
+    st.header('Top 10 Stocks by Growth', divider='gray')
+    st.table(top_10_growth)
 
 with col2:
-    st.subheader(f'Top 10 Losers', divider='grey')
-    top_losers = smart_portfolio.sort_values(by='Combined ROI', ascending=True).head(10)
-    top_losers_display = top_losers[['Combined ROI']].copy()
-    top_losers_display.index.name = 'Ticker'
-    st.dataframe(top_losers_display)
+    # Exibir a tabela das 10 ações com pior desempenho
+    st.header('Worst 10 Stocks by Growth', divider='gray')
+    st.table(worst_10_growth)
 
 # Create two columns
 col1, col2 = st.columns(2)
