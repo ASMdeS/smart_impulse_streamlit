@@ -77,6 +77,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe['Today Price'] = final_dataframe['Price']
     # Check if any stocks were sold
     sold = ~portfolio_dataframe.index.isin(final_dataframe.index)
+    # Check if the stock is active
     active_stock = portfolio_dataframe['First Entry']
     portfolio_dataframe.loc[sold & active_stock, 'Sell Price'] = portfolio_dataframe['Yesterday Price']
     portfolio_dataframe.loc[sold & active_stock, 'Sell Value'] = portfolio_dataframe['Sell Price'] * \
@@ -179,7 +180,7 @@ def create_mean_cumulative_returns(portfolio_dataframe):
     # Getting the tickers
     tickers = portfolio_dataframe.index.tolist()
 
-    # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
+    # To get the largest time period possible in which all stocks were traded, get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in tickers])
 
     # Download stock data starting from the latest IPO date
@@ -191,30 +192,38 @@ def create_mean_cumulative_returns(portfolio_dataframe):
     # Calculate daily returns (percentage change in closing prices)
     daily_returns = close_prices.pct_change().dropna()
 
-    # Calcula o retorno cumulativo do portfólio
+    # Calculate cumulative returns of the portfolio
     cumulative_returns = (1 + daily_returns).cumprod() - 1
 
-    # Calcula a média dos retornos cumulativos para todas as ações do portfólio
+    # Calculate the mean cumulative returns for all stocks in the portfolio
     mean_cumulative_returns = cumulative_returns.mean(axis=1)
 
-    # Calcula o retorno cumulativo dos principais índices
+    # Download index data
     indexes = ['^GSPC', '^IXIC', '^DJI']
     data_indexes = yf.download(indexes, start=latest_ipo)
 
+    # Extract 'Close' prices for indexes
     close_prices_indexes = data_indexes['Close']
 
-    # Calcula os retornos diários (variação percentual nos preços de fechamento)
+    # Calculate daily returns for indexes
     daily_returns_indexes = close_prices_indexes.pct_change().dropna()
 
-    # Calcula o retorno cumulativo dos índices
+    # Calculate cumulative returns for indexes
     cumulative_returns_indexes = (1 + daily_returns_indexes).cumprod() - 1
 
-    # Combina o retorno cumulativo do portfólio com os retornos dos índices
-    mean_cumulative_returns.name = "Portfolio"  # Nomeia a série do portfólio
+    # Combine cumulative returns of portfolio and indexes
+    mean_cumulative_returns.name = "Portfolio"
     total_cumulative_returns = pd.concat([mean_cumulative_returns, cumulative_returns_indexes], axis=1)
 
-    # Renomeia as colunas dos índices
+    # Rename index columns
     total_cumulative_returns = total_cumulative_returns.rename(
-        columns={"^DJI": "Dow Jones", "^IXIC": "NASDAQ", "^GSPC": "S&P 500"})
+        columns={"^DJI": "Dow Jones", "^IXIC": "NASDAQ", "^GSPC": "S&P 500"}
+    )
+
+    # Ensure 'Date' is the index name for Streamlit plotting
+    total_cumulative_returns.index = total_cumulative_returns.index.date
+    total_cumulative_returns.index.name = 'Date'
+
+    print(total_cumulative_returns.index)
 
     return total_cumulative_returns

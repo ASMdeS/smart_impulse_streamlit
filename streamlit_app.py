@@ -248,6 +248,11 @@ with col2:
     st.header('Worst 10 Stocks by Growth', divider='gray')
     st.table(worst_10_growth)
 
+# Gráfico de Preços das Ações
+st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
+st.line_chart(smart_cumulative_returns)
+
+
 # Create two columns
 col1, col2 = st.columns(2)
 
