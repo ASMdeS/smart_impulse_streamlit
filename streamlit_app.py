@@ -1,6 +1,5 @@
 import os
-import firebase_admin
-from firebase_admin import credentials, storage
+from firebase_admin import credentials, storage, initialize_app
 import streamlit as st
 import Creating_Portfolio
 import pandas as pd
@@ -41,7 +40,7 @@ def init_firebase():
     firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
     cred = credentials.Certificate(firebase_credentials)
     # Initialize the Firebase Admin SDK (cached)
-    return firebase_admin.initialize_app(cred, {
+    return initialize_app(cred, {
         'storageBucket': 'smt-bot-staging'
     })
 
