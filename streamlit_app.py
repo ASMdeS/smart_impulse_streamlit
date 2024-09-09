@@ -187,7 +187,7 @@ with col3:
     st.metric(label=f'Total Sold', value=sum_sold)
 
 with col4:
-    st.metric(label=f'Total Investment', value=f'{percentage_return:.2f}%')
+    st.metric(label=f'Total Return', value=f'{percentage_return:.2f}%')
 
 # Gráfico de Preços das Ações
 st.header('Stock Prices over Time', divider='gray')

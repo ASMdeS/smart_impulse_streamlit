@@ -82,8 +82,8 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[sold & active_stock, 'Sell Value'] = portfolio_dataframe['Sell Price'] * \
                                                                  portfolio_dataframe['Quantity']
     portfolio_dataframe.loc[sold & active_stock, 'Quantity'] = 0
-    portfolio_dataframe.loc[sold, 'First Entry'] = False
     portfolio_dataframe.loc[sold & active_stock, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
+    portfolio_dataframe.loc[sold, 'First Entry'] = False
     portfolio_dataframe.loc[active_stock, 'Days Holding'] += 1
     # Update Daily Count
     portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
@@ -108,10 +108,10 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     # Update Allocation and Value
     portfolio_dataframe['Total Amount'] = portfolio_dataframe['Quantity'] * portfolio_dataframe['Today Price']
     portfolio_dataframe['Allocation'] = portfolio_dataframe['Total Amount'] / portfolio_dataframe['Total Amount'].sum()
+
     portfolio_dataframe['Unrealized ROI'] = (portfolio_dataframe['Total Amount'] / portfolio_dataframe[
         'Investment'] - 1) * 100
     portfolio_dataframe['Combined ROI'] = (portfolio_dataframe[['Materialized ROI', 'Unrealized ROI']].sum(axis=1))
-
     # Add new stocks that were not in the portfolio before
     new_stocks = final_dataframe.index.difference(portfolio_dataframe.index)
     if not new_stocks.empty:
