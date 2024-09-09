@@ -1,5 +1,5 @@
 import os
-from firebase_admin import credentials, storage, initialize_app
+from firebase_admin import credentials, storage, initialize_app, _apps, get_app
 import streamlit as st
 import Creating_Portfolio
 import pandas as pd
@@ -37,13 +37,14 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 # Cache the Firebase initialization to avoid multiple initializations
 @st.cache_resource
 def init_firebase():
-    firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
-    cred = credentials.Certificate(firebase_credentials)
-    # Initialize the Firebase Admin SDK (cached)
-    return initialize_app(cred, {
-        'storageBucket': 'smt-bot-staging'
-    })
-
+    if not _apps:  # Check if no Firebase app is initialized
+        firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
+        cred = credentials.Certificate(firebase_credentials)
+        return initialize_app(cred, {
+            'storageBucket': 'smt-bot-staging'
+        })
+    else:
+        return get_app()
 # Initialize Firebase
 firebase_app = init_firebase()
 
