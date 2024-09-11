@@ -87,7 +87,10 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[sold, 'First Entry'] = False
     portfolio_dataframe.loc[active_stock, 'Days Holding'] += 1
     # Update Daily Count
-    portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
+    rebought = (~sold) & (portfolio_dataframe['Quantity'] == 0)
+    portfolio_dataframe = portfolio_dataframe[~rebought]
+    portfolio_dataframe.loc[rebought, 'Materialized ROI'] = None
+    portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'] & active_stock, 'Days Since First Entry'] += 1
     portfolio_dataframe.loc[
         (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']), 'Days Since Second Entry'] += 1
 
@@ -118,7 +121,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     if not new_stocks.empty:
         new_rows = pd.DataFrame(index=new_stocks)
         new_rows['Sector'] = final_dataframe.loc[new_stocks, 'Sector']
-        portfolio_dataframe['Market Category'] = final_dataframe.loc[new_stocks, 'Market Cap Category']
+        new_rows['Market Cap'] = final_dataframe.loc[new_stocks, 'Market Cap Category']
         new_rows['Allocation'] = 0.02
         new_rows['Value'] = new_rows['Allocation'] * 100000
         new_rows['Overdraft'] = 0
@@ -139,7 +142,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         new_rows['Investment'] = new_rows['Value']
         new_rows['Unrealized ROI'] = ((new_rows['Value'] / new_rows['Investment']) - 1) * 100
         new_rows['Materialized ROI'] = None
-        new_rows['Combined ROI'] = 1 - new_rows[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
+        new_rows['Combined ROI'] = new_rows[['Materialized ROI', 'Unrealized ROI']].sum(axis=1)
         new_rows['Days Holding'] = 0
         ROI = new_rows.pop('Combined ROI')
         new_rows.insert(0, 'Combined ROI', ROI)
