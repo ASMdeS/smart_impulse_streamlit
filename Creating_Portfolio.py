@@ -3,6 +3,7 @@
 import pandas as pd
 import yfinance as yf
 import openpyxl
+from Telegram_Bot import sold_stocks, bought_stocks
 
 pd.set_option('display.max_columns', 500)
 
@@ -82,6 +83,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[sold & active_stock, 'Sell Price'] = portfolio_dataframe['Yesterday Price']
     portfolio_dataframe.loc[sold & active_stock, 'Sell Value'] = portfolio_dataframe['Sell Price'] * \
                                                                  portfolio_dataframe['Quantity']
+    sold_stocks(portfolio_dataframe.loc[sold & active_stock])
     portfolio_dataframe.loc[sold & active_stock, 'Quantity'] = 0
     portfolio_dataframe.loc[sold & active_stock, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
     portfolio_dataframe.loc[sold, 'First Entry'] = False
@@ -148,6 +150,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
         new_rows.insert(0, 'Combined ROI', ROI)
         Holding = new_rows.pop('Days Holding')
         new_rows.insert(0, 'Days Holding', Holding)
+        bought_stocks(new_rows)
 
         # Add new rows to the portfolio dataframe
         portfolio_dataframe = pd.concat([portfolio_dataframe, new_rows])

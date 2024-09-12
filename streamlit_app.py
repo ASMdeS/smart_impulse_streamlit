@@ -7,7 +7,6 @@ import math
 import plotly.graph_objects as go
 from datetime import timedelta
 
-
 # Configuração da página
 st.set_page_config(
     page_title='Portfolio Tracking for Smart Impulse',

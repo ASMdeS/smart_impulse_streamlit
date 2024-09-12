@@ -5,3 +5,4 @@ plotly
 datetime
 firebase_admin
 openpyxl
+python-telegram-bot
