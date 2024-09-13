@@ -15,7 +15,7 @@ def excel_to_dataframe(file_name):
     # Remove 'Summary' column
     dataframe = dataframe.iloc[:-1]
     # Index the dataframe to the Ticker
-    dataframe.set_index('Ticker', inplace=True)
+    dataframe.set_index('Ticker', drop=True, inplace=True)
     # Removing the "$" from the 'Price' and 'Market Cap' columns
     dataframe['Price'] = dataframe['Price'].apply(lambda x: float(x[1:]) if isinstance(x, str) else x)
     dataframe['Market Cap ($M USD)'] = dataframe['Market Cap ($M USD)'].apply(
@@ -28,7 +28,7 @@ def excel_to_dataframe(file_name):
 
 # Function to create the portfolio dataframe
 def create_portfolio(initial_dataframe):
-    portfolio = initial_dataframe.index.to_frame(index=True)
+    portfolio = pd.DataFrame(index=initial_dataframe.index)
     portfolio['Sector'] = initial_dataframe['Sector']
     portfolio['Market Cap'] = initial_dataframe['Market Cap Category']
     portfolio['Allocation'] = 1 / len(initial_dataframe)
@@ -229,7 +229,5 @@ def create_mean_cumulative_returns(portfolio_dataframe):
     # Ensure 'Date' is the index name for Streamlit plotting
     total_cumulative_returns.index = total_cumulative_returns.index.date
     total_cumulative_returns.index.name = 'Date'
-
-    print(total_cumulative_returns.index)
 
     return total_cumulative_returns

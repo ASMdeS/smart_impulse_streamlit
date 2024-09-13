@@ -34,7 +34,7 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 
 # Cache the Firebase initialization to avoid multiple initializations
-@st.cache_resource
+#@st.cache_resource
 def init_firebase():
     if not _apps:  # Check if no Firebase app is initialized
         firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
@@ -166,7 +166,7 @@ def color_negative_red(value):
 
 colored_portfolio = smart_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
 colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
-colored_portfolio = colored_portfolio.format({'Allocation': '{:.2f}%'})
+colored_portfolio = colored_portfolio.format({'Allocation': '{:.2f}'})
 st.dataframe(data=colored_portfolio, height=300)
 
 col1, col2, col3, col4 = st.columns(4)
