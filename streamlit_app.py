@@ -33,8 +33,9 @@ and portfolio distribution, with real-time updates delivered through Telegram.
 ''
 ''
 
+
 # Cache the Firebase initialization to avoid multiple initializations
-#@st.cache_resource
+@st.cache_resource(ttl=timedelta(hours=24))
 def init_firebase():
     if not _apps:  # Check if no Firebase app is initialized
         firebase_credentials = dict(st.secrets["firebase"]['my_project_settings'])
@@ -44,6 +45,8 @@ def init_firebase():
         })
     else:
         return get_app()
+
+
 # Initialize Firebase
 firebase_app = init_firebase()
 
@@ -102,20 +105,18 @@ for blob in blobs:
 
 print('All missing files have been downloaded.')
 
-# Generate returns and cumulative returns
-smart_returns = Creating_Portfolio.create_returns(smart_portfolio)
-smart_cumulative_returns = Creating_Portfolio.create_mean_cumulative_returns(smart_portfolio)
 
-
-@st.cache_data
+@st.cache_data(ttl=timedelta(hours=24))
 def get_stock_data():
+    # Generate returns and cumulative returns
+    smart_returns, smart_cumulative_returns = Creating_Portfolio.create_mean_cumulative_returns(smart_portfolio)
     stock_df = smart_returns.T.reset_index()
     stock_df = stock_df.rename(columns={'index': 'Date'})
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
-    return stock_df
+    return stock_df, smart_cumulative_returns
 
 
-stock_df = get_stock_data()
+stock_df, stock_returns = get_stock_data()
 
 # Seleção de período
 min_date = stock_df['Date'].min().date()
@@ -164,6 +165,7 @@ def color_negative_red(value):
     color = 'red' if value < 0 else 'green'
     return f'color: {color}'
 
+
 colored_portfolio = smart_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
 colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
 colored_portfolio = colored_portfolio.format({'Allocation': '{:.2f}'})
@@ -211,11 +213,10 @@ if selected_stocks:
 
             st.metric(label=f'{ticker} Price', value=f'{last_price:,.2f}', delta=growth, delta_color=delta_color)
 
-
 # Criação de um DataFrame vazio
 growth_data = []
 
-for ticker in tickers:
+for ticker in filtered_stock_df.columns[1:]:
     first_price = filtered_stock_df[ticker].iloc[0]
     last_price = filtered_stock_df[ticker].iloc[-1]
 
@@ -249,8 +250,7 @@ with col2:
 
 # Gráfico de Preços das Ações
 st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
-st.line_chart(smart_cumulative_returns)
-
+st.line_chart(stock_returns)
 
 # Create two columns
 col1, col2 = st.columns(2)

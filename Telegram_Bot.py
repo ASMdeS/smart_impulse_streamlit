@@ -1,6 +1,8 @@
 import telegram
 import asyncio
 import streamlit as st
+
+
 def send_message(message):
     # Replace 'YOUR_BOT_TOKEN' with the token you got from BotFather
     bot_token = st.secrets["telegram"]["bot_token"]
@@ -19,14 +21,18 @@ def send_message(message):
 
 
 def sold_stocks(dataframe):
+    batch_messages = []
     for index, row in dataframe.iterrows():
-        Message = f'{row["Quantity"]:.2f} of {index} sold at {row["Sell Price"]:.2f}'
-        print(Message)
-        send_message(Message)
+        message = f'{row["Quantity"]:.2f} of {index} sold at {row["Sell Price"]:.2f}'
+        batch_messages.append(message)
+    single_message = '\n'.join(batch_messages)
+    send_message(single_message)
 
 
 def bought_stocks(dataframe):
+    batch_messages = []
     for index, row in dataframe.iterrows():
-        Message = f'{row["Quantity"]:.2f} of {index} bought at {row["First Entry Price"]:.2f}'
-        print(Message)
-        send_message(Message)
+        message = f'{row["Quantity"]:.2f} of {index} bought at {row["First Entry Price"]:.2f}'
+        batch_messages.append(message)
+    single_message = '\n'.join(batch_messages)
+    send_message(single_message)

@@ -5,8 +5,6 @@ import yfinance as yf
 import openpyxl
 from Telegram_Bot import sold_stocks, bought_stocks
 
-pd.set_option('display.max_columns', 500)
-
 
 # Function to transform csv files in desired dataframes
 def excel_to_dataframe(file_name):
@@ -83,7 +81,9 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     portfolio_dataframe.loc[sold & active_stock, 'Sell Price'] = portfolio_dataframe['Yesterday Price']
     portfolio_dataframe.loc[sold & active_stock, 'Sell Value'] = portfolio_dataframe['Sell Price'] * \
                                                                  portfolio_dataframe['Quantity']
-    sold_stocks(portfolio_dataframe.loc[sold & active_stock])
+    sold_stocks_data = portfolio_dataframe.loc[sold & active_stock]
+    if not sold_stocks_data.empty:
+        sold_stocks(sold_stocks_data)
     portfolio_dataframe.loc[sold & active_stock, 'Quantity'] = 0
     portfolio_dataframe.loc[sold & active_stock, 'Materialized ROI'] = portfolio_dataframe['Unrealized ROI']
     portfolio_dataframe.loc[sold, 'First Entry'] = False
@@ -167,21 +167,6 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     return portfolio_dataframe
 
 
-def create_returns(portfolio_dataframe):
-    # Getting the tickers
-    tickers = portfolio_dataframe.index.tolist()
-    # To get the largest time period possible in which all stocks were traded, we will get the latest IPO
-    latest_ipo = max([get_ipo_date(ticker) for ticker in portfolio_dataframe.index.tolist()])
-    # Creating the Stock Returns Dataframe
-    data = yf.download(tickers, start=latest_ipo)
-    # Extract the 'Close' prices
-    close_prices = data['Close']
-    # Transpose the DataFrame so that tickers are the index and dates are columns
-    returns = close_prices.T
-
-    return returns
-
-
 def create_mean_cumulative_returns(portfolio_dataframe):
     # Getting the tickers
     tickers = portfolio_dataframe.index.tolist()
@@ -194,6 +179,9 @@ def create_mean_cumulative_returns(portfolio_dataframe):
 
     # Extract the 'Close' prices
     close_prices = data['Close']
+
+    # Transpose the DataFrame so that tickers are the index and dates are columns
+    returns = close_prices.T
 
     # Calculate daily returns (percentage change in closing prices)
     daily_returns = close_prices.pct_change().dropna()
@@ -230,4 +218,4 @@ def create_mean_cumulative_returns(portfolio_dataframe):
     total_cumulative_returns.index = total_cumulative_returns.index.date
     total_cumulative_returns.index.name = 'Date'
 
-    return total_cumulative_returns
+    return returns, total_cumulative_returns
