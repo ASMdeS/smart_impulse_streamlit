@@ -1,11 +1,15 @@
 import os
 from firebase_admin import credentials, storage, initialize_app, _apps, get_app
 import streamlit as st
-import Creating_Portfolio
+from Creating_Portfolio import excel_to_dataframe, create_portfolio, update_portfolio
 import pandas as pd
 import math
 import plotly.graph_objects as go
 from datetime import timedelta
+from Donut_Charts import plot_charts
+from Growth_Tables import generate_tables
+from Stock_Portfoliio_Dataframe import generate_dataframe_visualization
+from Getting_Returns import create_mean_cumulative_returns
 
 # Configuração da página
 st.set_page_config(
@@ -90,13 +94,13 @@ for blob in blobs:
             local_path = os.path.join(data_dir, new_filename)
             blob.download_to_filename(local_path)
             print(f'File downloaded to {local_path}')
-            new_dataframe = Creating_Portfolio.excel_to_dataframe(local_path)
+            new_dataframe = excel_to_dataframe(local_path)
 
             # Create or update the portfolio
             if smart_portfolio.empty:
-                smart_portfolio = Creating_Portfolio.create_portfolio(new_dataframe)
+                smart_portfolio = create_portfolio(new_dataframe, 1 / len(new_dataframe))
             else:
-                smart_portfolio = Creating_Portfolio.update_portfolio(smart_portfolio, new_dataframe)
+                smart_portfolio = update_portfolio(smart_portfolio, new_dataframe)
 
             # Save the portfolio to CSV after every update
             smart_portfolio.to_csv(csv_file_path)
@@ -105,20 +109,24 @@ for blob in blobs:
 
 print('All missing files have been downloaded.')
 
+# Print the portfolio on the dataframe
+generate_dataframe_visualization(smart_portfolio)
 
+
+# Cache stock data to avoid multiple Yahoo! Finance requests
 @st.cache_data(ttl=timedelta(hours=24))
 def get_stock_data():
     # Generate returns and cumulative returns
-    smart_returns, smart_cumulative_returns = Creating_Portfolio.create_mean_cumulative_returns(smart_portfolio)
+    smart_returns, smart_cumulative_returns = create_mean_cumulative_returns(smart_portfolio)
     stock_df = smart_returns.T.reset_index()
     stock_df = stock_df.rename(columns={'index': 'Date'})
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
     return stock_df, smart_cumulative_returns
 
-
+# Getting the stock data DataFrames
 stock_df, stock_returns = get_stock_data()
 
-# Seleção de período
+# Timeframe selection
 min_date = stock_df['Date'].min().date()
 max_date = stock_df['Date'].max().date()
 
@@ -144,7 +152,7 @@ to_date = max_date
 
 st.write(f"Displaying data from {from_date} to {to_date}")
 
-# Filtrar DataFrame
+# Filtering DataFrame
 filtered_stock_df = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
 
 tickers = stock_df.columns[1:]
@@ -157,44 +165,11 @@ selected_stocks = st.multiselect('Which stocks would you like to view?', tickers
 if selected_stocks:
     filtered_stock_df = filtered_stock_df[['Date'] + selected_stocks]
 
-# Tabela de Portfólio no topo
-st.header(f'Stock Portfolio', divider='gray')
-
-
-def color_negative_red(value):
-    color = 'red' if value < 0 else 'green'
-    return f'color: {color}'
-
-
-colored_portfolio = smart_portfolio.style.applymap(color_negative_red, subset=['Combined ROI'])
-colored_portfolio = colored_portfolio.format({'Combined ROI': '{:.2f}%'})
-colored_portfolio = colored_portfolio.format({'Allocation': '{:.2f}'})
-st.dataframe(data=colored_portfolio, height=300)
-
-col1, col2, col3, col4 = st.columns(4)
-
-sum_amount = int(smart_portfolio["Total Amount"].sum())
-sum_investment = int(smart_portfolio["Investment"].sum())
-sum_sold = int(smart_portfolio["Sell Value"].sum())
-percentage_return = (((sum_amount + sum_sold) / sum_investment) - 1) * 100
-
-with col1:
-    st.metric(label=f'Total Amount', value=sum_amount)
-
-with col2:
-    st.metric(label=f'Total Investment', value=sum_investment)
-
-with col3:
-    st.metric(label=f'Total Sold', value=sum_sold)
-
-with col4:
-    st.metric(label=f'Total Return', value=f'{percentage_return:.2f}%')
-
-# Gráfico de Preços das Ações
+# Stock Prices Line Chart
 st.header('Stock Prices over Time', divider='gray')
 st.line_chart(filtered_stock_df.set_index('Date'))
 
-# Retornos das Ações Selecionadas
+# Returns of the selected stocks
 if selected_stocks:
     st.header(f'Selected Stocks Returns', divider='gray')
     cols = st.columns(4)
@@ -213,66 +188,12 @@ if selected_stocks:
 
             st.metric(label=f'{ticker} Price', value=f'{last_price:,.2f}', delta=growth, delta_color=delta_color)
 
-# Criação de um DataFrame vazio
-growth_data = []
+# Top 10 Tables
+generate_tables(filtered_stock_df)
 
-for ticker in filtered_stock_df.columns[1:]:
-    first_price = filtered_stock_df[ticker].iloc[0]
-    last_price = filtered_stock_df[ticker].iloc[-1]
-
-    if not pd.isna(first_price) and not pd.isna(last_price) and first_price != 0:
-        growth = (last_price - first_price) / first_price * 100
-        # Em vez de append, armazenamos os dados em uma lista
-        growth_data.append({'Stock': ticker, 'Growth (%)': growth})
-
-# Agora criamos o DataFrame a partir da lista
-growth_df = pd.DataFrame(growth_data)
-
-# Classificar as 10 ações com maior crescimento
-top_10_growth = growth_df.sort_values(by='Growth (%)', ascending=False).head(10).reset_index(drop=True)
-top_10_growth.index = top_10_growth.index + 1
-
-# Classificar as 10 ações com pior desempenho
-worst_10_growth = growth_df.sort_values(by='Growth (%)', ascending=True).head(10).reset_index(drop=True)
-worst_10_growth.index = worst_10_growth.index + 1
-
-col1, col2 = st.columns(2)
-
-with col1:
-    # Exibir a tabela das 10 ações com maior crescimento
-    st.header('Top 10 Stocks by Growth', divider='gray')
-    st.table(top_10_growth)
-
-with col2:
-    # Exibir a tabela das 10 ações com pior desempenho
-    st.header('Worst 10 Stocks by Growth', divider='gray')
-    st.table(worst_10_growth)
-
-# Gráfico de Preços das Ações
+# Backtracking Graph
 st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
 st.line_chart(stock_returns)
 
-# Create two columns
-col1, col2 = st.columns(2)
-
-# Prepare data for the donut chart
-with col1:
-    grouped_by_sector = smart_portfolio.groupby('Sector')['Allocation'].sum()
-    labels_cap = grouped_by_sector.index
-    values_cap = grouped_by_sector.values
-
-    fig_sector = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
-
-    st.header('Market Sector Distribution', divider='gray')
-    st.plotly_chart(fig_sector)
-
-# Prepare data for the donut chart
-with col2:
-    grouped_by_cap = smart_portfolio.groupby('Market Cap')['Allocation'].sum()
-    labels_cap = grouped_by_cap.index
-    values_cap = grouped_by_cap.values
-
-    fig_cap = go.Figure(data=[go.Pie(labels=labels_cap, values=values_cap, hole=.3)])
-
-    st.header('Market Capitalization Distribution', divider='gray')
-    st.plotly_chart(fig_cap)
+# Plot Market Sector and Cap Distribution
+plot_charts(smart_portfolio)
