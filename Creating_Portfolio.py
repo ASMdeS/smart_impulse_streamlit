@@ -21,7 +21,7 @@ def excel_to_dataframe(file_name):
 
 
 # Function to create the portfolio dataframe
-def create_portfolio(initial_dataframe, allocation):
+def create_portfolio(initial_dataframe, allocation, date):
     portfolio = pd.DataFrame(index=initial_dataframe.index)
     portfolio['Sector'] = initial_dataframe['Sector']
     portfolio['Market Cap'] = initial_dataframe['Market Cap Category']
@@ -43,6 +43,8 @@ def create_portfolio(initial_dataframe, allocation):
     portfolio['Investment'] = portfolio['Value']
     portfolio['ROI'] = ((portfolio['Value'] / portfolio['Investment']) - 1) * 100
     portfolio['Days Holding'] = 0
+    portfolio['Buy Date'] = date
+    portfolio['Sell Date'] = None
     ROI = portfolio.pop('ROI')
     portfolio.insert(0, 'ROI', ROI)
     Holding = portfolio.pop('Days Holding')
@@ -51,18 +53,16 @@ def create_portfolio(initial_dataframe, allocation):
     return portfolio
 
 
-def update_portfolio(portfolio_dataframe, final_dataframe):
+def update_portfolio(portfolio_dataframe, final_dataframe, date):
     # Align final dataframe
     final_dataframe.reindex(portfolio_dataframe.index)
-
-    # Update Pricing
-    portfolio_dataframe['Yesterday Price'] = portfolio_dataframe['Today Price']
-    portfolio_dataframe['Today Price'] = final_dataframe['Price']
-    # Check if any stocks were sold
-
     sold = ~portfolio_dataframe.index.isin(final_dataframe.index)
-    active_stock = portfolio_dataframe['First Entry']
-    for stock_name in portfolio_dataframe.loc[sold & active_stock].index:
+    portfolio_dataframe.loc[sold & portfolio_dataframe['Sell Date'].isnull(), 'Sell Date'] = date
+    sold_today = portfolio_dataframe['Sell Date'] == date
+    # Send Telegram message if there are sold stocks
+    if not portfolio_dataframe.loc[sold_today].empty:
+        sold_stocks(portfolio_dataframe.loc[sold_today])
+    for stock_name in portfolio_dataframe.loc[sold_today].index:
         base_name = stock_name.split('.')[0]
         count = 1
         new_name = f"{base_name}.{count}"
@@ -71,18 +71,15 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
             new_name = f"{base_name}.{count}"
         portfolio_dataframe.rename(index={stock_name: new_name}, inplace=True)
     sold = pd.Series(sold, index=portfolio_dataframe.index)
-    active_stock = pd.Series(active_stock, index=portfolio_dataframe.index)
-
     sold_dataframe = portfolio_dataframe[sold]
-    recently_sold_stocks_data = portfolio_dataframe.loc[sold & active_stock]
 
-    # Send Telegram message if there are sold stocks
-    if not recently_sold_stocks_data.empty:
-        sold_stocks(recently_sold_stocks_data)
-
+    portfolio_dataframe = portfolio_dataframe[~sold]
+    # Update Pricing
+    portfolio_dataframe['Yesterday Price'] = portfolio_dataframe['Today Price']
+    portfolio_dataframe['Today Price'] = final_dataframe['Price']
+    # Check if any stocks were sold
     portfolio_dataframe['Days Holding'] += 1
     # Update Daily Count
-    portfolio_dataframe = portfolio_dataframe[~sold]
     portfolio_dataframe.loc[~portfolio_dataframe['Second Entry'], 'Days Since First Entry'] += 1
     portfolio_dataframe.loc[
         (portfolio_dataframe['Second Entry']) & (~portfolio_dataframe['Third Entry']), 'Days Since Second Entry'] += 1
@@ -114,7 +111,7 @@ def update_portfolio(portfolio_dataframe, final_dataframe):
     new_stocks = final_dataframe.index.difference(portfolio_dataframe.index)
     if not new_stocks.empty:
         # Create portfolio dataframe based on the new stocks
-        new_rows = create_portfolio(final_dataframe.loc[new_stocks], 0.02)
+        new_rows = create_portfolio(final_dataframe.loc[new_stocks], 0.02, date)
         # Send Telegram message with the new stocks
         bought_stocks(new_rows)
         # Add new rows to the portfolio dataframe

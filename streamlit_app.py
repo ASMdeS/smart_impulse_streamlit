@@ -98,9 +98,9 @@ for blob in blobs:
 
             # Create or update the portfolio
             if smart_portfolio.empty:
-                smart_portfolio = create_portfolio(new_dataframe, 1 / len(new_dataframe))
+                smart_portfolio = create_portfolio(new_dataframe, 1 / len(new_dataframe), new_filename[:10])
             else:
-                smart_portfolio = update_portfolio(smart_portfolio, new_dataframe)
+                smart_portfolio = update_portfolio(smart_portfolio, new_dataframe, new_filename[:10])
 
             # Save the portfolio to CSV after every update
             smart_portfolio.to_csv(csv_file_path)
