@@ -54,6 +54,7 @@ bucket = storage.bucket()
 folder_path = 'smart_impulse'
 data_dir = 'data'
 csv_file_path = os.path.join(data_dir, 'smart_portfolio.csv')
+tracking_file_path = os.path.join(data_dir, 'returns.csv')
 
 # Ensure the 'data' directory exists
 if not os.path.exists(data_dir):
@@ -63,10 +64,13 @@ if not os.path.exists(data_dir):
 if os.path.exists(csv_file_path):
     # Load the existing portfolio from CSV
     smart_portfolio = pd.read_csv(csv_file_path, index_col=0)
+    smart_tracking = pd.read_csv(tracking_file_path, index_col=0)
     porfolio_created = True
     print("Smart portfolio loaded from CSV.")
 else:
     smart_portfolio = pd.DataFrame()  # Start with an empty DataFrame
+    # Create a new DataFrame to store filename, smart_amounts, and smart_investments
+    smart_tracking = pd.DataFrame(columns=['Total Amount', 'Investment'])
     porfolio_created = False
 
 # List all files in the specified folder in Firebase Storage
@@ -94,9 +98,11 @@ for blob in blobs:
                 smart_portfolio = create_portfolio(new_dataframe, 1 / len(new_dataframe), new_filename[:10])
             else:
                 smart_portfolio = update_portfolio(smart_portfolio, new_dataframe, new_filename[:10])
-
+            smart_tracking.loc[pd.to_datetime(new_filename[:10])] = [smart_portfolio['Total Amount'].sum(),
+                                                                     smart_portfolio['Investment'].sum()]
             # Save the portfolio to CSV after every update
             smart_portfolio.to_csv(csv_file_path)
+            smart_tracking.to_csv(tracking_file_path)
             print(f'Smart portfolio updated and saved to {csv_file_path}')
             local_files = os.listdir(data_dir)
 
@@ -104,6 +110,8 @@ print('All missing files have been downloaded.')
 
 # Print the portfolio on the dataframe
 generate_dataframe_visualization(smart_portfolio)
+
+print(smart_tracking)
 
 
 # Cache stock data to avoid multiple Yahoo! Finance requests
@@ -188,6 +196,10 @@ generate_tables(filtered_stock_df)
 # Backtracking Graph
 st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
 st.line_chart(filtered_stock_returns)
+
+# Show Graph with the Tracking
+st.header(f'Tracking Portfolio Performance', divider='gray')
+st.line_chart(smart_tracking)
 
 # Plot Market Sector and Cap Distribution
 plot_charts(smart_portfolio)
