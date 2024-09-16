@@ -15,7 +15,6 @@ def create_mean_cumulative_returns(portfolio_dataframe):
     tickers = portfolio_dataframe.index.tolist()
     unique_tickers = list(set([ticker.split('.')[0] for ticker in tickers]))
 
-
     # To get the largest time period possible in which all stocks were traded, get the latest IPO
     latest_ipo = max([get_ipo_date(ticker) for ticker in unique_tickers])
 

@@ -11,17 +11,14 @@ from Growth_Tables import generate_tables
 from Stock_Portfoliio_Dataframe import generate_dataframe_visualization
 from Getting_Returns import create_mean_cumulative_returns
 
-# Configuração da página
+# Page Settings
 st.set_page_config(
     page_title='Portfolio Tracking for Smart Impulse',
     page_icon=':earth_americas:',
     layout="wide"
 )
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
+# Set the title that appears at the top of the page and summary of the project.
 '''
 # :earth_americas: Portfolio Tracking for Smart Impulse
 
@@ -32,10 +29,6 @@ $100,000, the portfolio's performance is continuously monitored, and entries are
 returns. The dashboard provides comprehensive insights, including ROI calculations, top performers and losers,
 and portfolio distribution, with real-time updates delivered through Telegram.
 '''
-
-# Add some spacing
-''
-''
 
 
 # Cache the Firebase initialization to avoid multiple initializations
@@ -122,6 +115,7 @@ def get_stock_data():
     stock_df = stock_df.rename(columns={'index': 'Date'})
     stock_df['Date'] = pd.to_datetime(stock_df['Date'])
     return stock_df, smart_cumulative_returns
+
 
 # Getting the stock data DataFrames
 stock_df, stock_returns = get_stock_data()
