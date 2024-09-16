@@ -120,8 +120,6 @@ def get_stock_data():
 # Getting the stock data DataFrames
 stock_df, stock_returns = get_stock_data()
 
-print(stock_returns)
-
 # Timeframe selection
 min_date = stock_df['Date'].min().date()
 max_date = stock_df['Date'].max().date()
