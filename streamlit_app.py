@@ -126,6 +126,8 @@ def get_stock_data():
 # Getting the stock data DataFrames
 stock_df, stock_returns = get_stock_data()
 
+print(stock_returns)
+
 # Timeframe selection
 min_date = stock_df['Date'].min().date()
 max_date = stock_df['Date'].max().date()
@@ -154,7 +156,7 @@ st.write(f"Displaying data from {from_date} to {to_date}")
 
 # Filtering DataFrame
 filtered_stock_df = stock_df[(stock_df['Date'].dt.date >= from_date) & (stock_df['Date'].dt.date <= to_date)]
-
+filtered_stock_returns = stock_returns[(stock_returns.index >= from_date) & (stock_returns.index <= to_date)]
 tickers = stock_df.columns[1:]
 
 if not len(tickers):
@@ -193,7 +195,7 @@ generate_tables(filtered_stock_df)
 
 # Backtracking Graph
 st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
-st.line_chart(stock_returns)
+st.line_chart(filtered_stock_returns)
 
 # Plot Market Sector and Cap Distribution
 plot_charts(smart_portfolio)
