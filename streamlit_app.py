@@ -8,10 +8,9 @@ import plotly.graph_objects as go
 from datetime import timedelta
 from Donut_Charts import plot_charts
 from Growth_Tables import generate_tables
-from Stock_Portfoliio_Dataframe import generate_dataframe_visualization
+from Stock_Portfoliio_Dataframe import generate_summarized_visualization, generate_dataframe_visualization
 from Getting_Returns import create_mean_cumulative_returns
 import hmac
-
 
 # Page Settings
 st.set_page_config(
@@ -149,10 +148,7 @@ for blob in blobs:
 
 print('All missing files have been downloaded.')
 
-# Print the portfolio on the dataframe
-generate_dataframe_visualization(smart_portfolio)
-
-print(smart_tracking)
+generate_summarized_visualization(smart_portfolio)
 
 
 # Cache stock data to avoid multiple Yahoo! Finance requests
@@ -237,6 +233,9 @@ generate_tables(filtered_stock_df)
 # Backtracking Graph
 st.header('Backtracking Portfolio vs Main Indexes', divider='gray')
 st.line_chart(filtered_stock_returns)
+
+# Print the portfolio on the dataframe
+generate_dataframe_visualization(smart_portfolio)
 
 # Show Graph with the Tracking
 st.header(f'Tracking Portfolio Performance', divider='gray')
