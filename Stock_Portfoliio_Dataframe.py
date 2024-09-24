@@ -3,7 +3,7 @@ import streamlit as st
 
 def generate_summarized_visualization(portfolio_dataframe):
     # Filter rows where 'Sell Date' is missing (assuming the column is named 'Sell Date')
-    filtered_dataframe = portfolio_dataframe[portfolio_dataframe['Sell Date'].isna()]
+    filtered_dataframe = portfolio_dataframe[portfolio_dataframe['Sell Date'].isna()].sort_values('Buy Date', ascending=False)
 
     # Select only the columns 'a', 'b', and 'c'
     filtered_dataframe = filtered_dataframe[
@@ -26,8 +26,6 @@ def generate_summarized_visualization(portfolio_dataframe):
         st.dataframe(data=colored_portfolio, height=300)
 
     with col2:
-        col1, col2, col3 = st.columns(3)
-
         sum_amount = int(filtered_dataframe["Total Amount"].sum())
         sum_investment = int(filtered_dataframe["Investment"].sum())
         percentage_return = ((sum_amount / sum_investment) - 1) * 100
